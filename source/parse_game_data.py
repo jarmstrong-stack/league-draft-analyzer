@@ -47,6 +47,7 @@ import constants as CONST
 OUTPUT_FILE_ARG = "output_file"
 START_NUMBER_ARG = "start_number"
 STOP_NUMBER_ARG = "stop_number"
+
 NUMBER_PLACEHOLDER:str = "&0&1"
 GOL_GG_URL:str = f"https://gol.gg/game/stats/{NUMBER_PLACEHOLDER}/page-game"
 
@@ -76,8 +77,12 @@ def main() -> int:
 
     return 0
 
-def parse_gol_gg_game(url:str) -> dict|None:
-    """Takes in a `gol.gg` page-game url and scrapes the content into `result_dict`"""
+def parse_gol_gg_game(url:str) -> dict:
+    """Takes in a `gol.gg` page-game url and scrapes the content into `result_dict`
+
+    - This function should be handled in a try catch statement because it has no safety checks
+    This is because we WANT it to fail if it doesn't find something in the web page
+    """
     # Initialize the result dictionary
     result_dict = {
         CONST.PICK_DATA: {CONST.BLUE_SIDE: {}, CONST.RED_SIDE: {}},
@@ -105,7 +110,7 @@ def parse_gol_gg_game(url:str) -> dict|None:
     # Ensure the request was successful
     if response.status_code != 200:
         print(f"Request failed with status code {response.status_code}")
-        return None
+        raise Exception("Failed to request url")
     
     # Parse the page with BeautifulSoup
     soup = BeautifulSoup(response.content, 'html.parser')
@@ -163,7 +168,7 @@ def parse_gol_gg_game(url:str) -> dict|None:
 
     return result_dict
 
-def normalize_data(result_dict:dict) -> dict:
+def normalize_data(result_dict:dict) -> None:
     """Normalize data from `parse_gol_gg_game` into model friendly data
     
     - game-time: str('28:10') > int(1681) # seconds
@@ -184,10 +189,16 @@ def normalize_data(result_dict:dict) -> dict:
     game_date = result_dict[CONST.GAMEDATE_DATA].split(' ')[0].replace('-', '') # Get YYYYMMDD date from game date
     result_dict[CONST.GAMEDATE_DATA] = int(game_date)
 
+def champ_to_int(champ_name:str) -> int:
+    """Parses a champ name(str) to it's assigned int"""
+    return 1
+
 if __name__ == "__main__":
     ret:int = main()
     assert isinstance(ret, int)
+
     a = parse_gol_gg_game("https://gol.gg/game/stats/62439/page-game/")
     normalize_data(a)
     print(a)
+
     sys.exit(ret)
