@@ -2,7 +2,6 @@
     Parses game data from `gol.gg` into a league-draft-analyzer readable format
 
     Json format:
-    Json format:
     {
         "pick":{
             "blue": dict[int:Champ], # Where int describes champ's lane assignment
@@ -28,11 +27,6 @@
     Requirements:
     requests - for getting page html
     beautifulsoup4 - for scrapping html elements
-
-    TODO: Make json format better for searches
-    or make utility functions i can call in command line
-    like some sort of library we can import in py shell
-    and filter like that
 """
 
 import sys
