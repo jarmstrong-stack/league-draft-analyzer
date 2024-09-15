@@ -45,8 +45,24 @@ import constants as CONST
 
 ### Constants
 OUTPUT_FILE_ARG = "output_file"
+START_NUMBER_ARG = "start_number"
+STOP_NUMBER_ARG = "stop_number"
 NUMBER_PLACEHOLDER:str = "&0&1"
 GOL_GG_URL:str = f"https://gol.gg/game/stats/{NUMBER_PLACEHOLDER}/page-game"
+
+def parse_args() -> dict[str,Any]:
+    """Parse required args for script"""
+    parser = argparse.ArgumentParser("game_data_parser_py")
+    parser.add_argument(OUTPUT_FILE_ARG, help="Where game data output will be written into(json).", type=str)
+    parser.add_argument(START_NUMBER_ARG, help="Which game number to start.", type=int)
+    parser.add_argument(STOP_NUMBER_ARG, help="Which game number to stop.", type=int)
+    args = parser.parse_args()
+
+    return {
+        OUTPUT_FILE_ARG: getattr(args, OUTPUT_FILE_ARG),
+        START_NUMBER_ARG: getattr(args, START_NUMBER_ARG),
+        STOP_NUMBER_ARG: getattr(args, STOP_NUMBER_ARG)
+    }
 
 def main() -> int:
     """Entry point of script
@@ -55,21 +71,10 @@ def main() -> int:
     """
     # 1. Get info from arguments
     parsed_args:dict = parse_args()
-    output_file:str = parsed_args[OUTPUT_FILE_ARG]
 
     # 2. 
 
     return 0
-
-def parse_args() -> dict[str,Any]:
-    """Parse required args for script"""
-    parser = argparse.ArgumentParser("game_data_parser_py")
-    parser.add_argument(OUTPUT_FILE_ARG, help="Where game data output will be written into(json).", type=str)
-    args = parser.parse_args()
-
-    return {
-        OUTPUT_FILE_ARG: getattr(args, OUTPUT_FILE_ARG)
-    }
 
 def parse_gol_gg_game(url:str) -> dict|None:
     """Takes in a `gol.gg` page-game url and scrapes the content into `result_dict`"""
@@ -107,41 +112,32 @@ def parse_gol_gg_game(url:str) -> dict|None:
 
     # Extract game time
     game_time_element = soup.find('div', class_='col-6 text-center')
-    if game_time_element:
-        game_time = game_time_element.find('h1').text.strip()
-        game_time_minutes, game_time_seconds = map(int, game_time.split(":"))
-        result_dict[CONST.GAMETIME_DATA] = game_time_minutes * 60 + game_time_seconds # Store time as seconds
+    result_dict[CONST.GAMETIME_DATA] = game_time_element.find('h1').text.strip()
 
     # Extract patch
     patch_element = soup.find('div', class_='col-3 text-right')
-    if patch_element:
-        parsed_patch = patch_element.text.replace(' v', '').replace('.', '') # v10.12 into 1012
-        result_dict[CONST.PATCH_DATA] = int(parsed_patch)
+    result_dict[CONST.PATCH_DATA] = patch_element.text
 
     # Extract game date
     game_date_element = soup.find('div', class_='col-12 col-sm-5 text-right')
-    if game_date_element:
-        game_date = game_date_element.text.split(' ')[0].replace('-', '') # Get YYYYMMDD date from game date
-        result_dict[CONST.GAMEDATE_DATA] = int(game_date)
+    result_dict[CONST.GAMEDATE_DATA] = game_date_element.text
 
     # Extract tournament
     tournament_element = soup.find('div', class_='col-12 col-sm-7')
-    if tournament_element:
-        result_dict[CONST.TOURNAMENT_DATA] = tournament_element.find('a').text.split(' ')[0] # Get the first word of tournament
+    result_dict[CONST.TOURNAMENT_DATA] = tournament_element.find('a').text.split(' ')[0] # Get the first word of tournament
 
     # Extract team elements
     blue_team_element = soup.find('div', class_='blue-line-header')
     red_team_element = soup.find('div', class_='red-line-header')
 
     # Extract team names and game result
-    if blue_team_element:
-        result_dict[CONST.TEAMS_DATA][CONST.BLUE_SIDE] = blue_team_element.text.strip().split(' - ')[0]
-        if CONST.GOL_GG_WIN in blue_team_element.text:
-            result_dict[CONST.GAMERESULT_DATA] = CONST.BLUE_WIN
-    if red_team_element:
-        result_dict[CONST.TEAMS_DATA][CONST.RED_SIDE] = red_team_element.text.strip().split(' - ')[0]
-        if CONST.GOL_GG_WIN in red_team_element.text:
-            result_dict[CONST.GAMERESULT_DATA] = CONST.RED_WIN
+    result_dict[CONST.TEAMS_DATA][CONST.BLUE_SIDE] = blue_team_element.text.strip().split(' - ')[0]
+    if CONST.GOL_GG_WIN in blue_team_element.text:
+        result_dict[CONST.GAMERESULT_DATA] = CONST.BLUE_WIN
+
+    result_dict[CONST.TEAMS_DATA][CONST.RED_SIDE] = red_team_element.text.strip().split(' - ')[0]
+    if CONST.GOL_GG_WIN in red_team_element.text:
+        result_dict[CONST.GAMERESULT_DATA] = CONST.RED_WIN
 
     # Extract champion bans (blue and red side)
     bans_blue_element = soup.find_all('div', class_='col-sm-6')[0]
@@ -167,7 +163,31 @@ def parse_gol_gg_game(url:str) -> dict|None:
 
     return result_dict
 
+def normalize_data(result_dict:dict) -> dict:
+    """Normalize data from `parse_gol_gg_game` into model friendly data
+    
+    - game-time: str('28:10') > int(1681) # seconds
+    - patch: str(' v14.18') > int(1418)
+    - game-date: str('2024-08-30 (xyz)') > int(20240830)
+    - champs: str('Ahri') > int(22)
+    """
+
+    # game-time
+    game_time_minutes, game_time_seconds = map(int, result_dict[CONST.GAMETIME_DATA].split(":"))
+    result_dict[CONST.GAMETIME_DATA] = game_time_minutes * 60 + game_time_seconds # Store time as seconds
+
+    # patch
+    normalized_patch = result_dict[CONST.PATCH_DATA].replace(' v', '').replace('.', '') # v14.18 into 1418
+    result_dict[CONST.PATCH_DATA] = int(normalized_patch)
+
+    # game-date
+    game_date = result_dict[CONST.GAMEDATE_DATA].split(' ')[0].replace('-', '') # Get YYYYMMDD date from game date
+    result_dict[CONST.GAMEDATE_DATA] = int(game_date)
+
 if __name__ == "__main__":
     ret:int = main()
     assert isinstance(ret, int)
+    a = parse_gol_gg_game("https://gol.gg/game/stats/62439/page-game/")
+    normalize_data(a)
+    print(a)
     sys.exit(ret)
