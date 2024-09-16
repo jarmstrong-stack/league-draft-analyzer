@@ -51,7 +51,6 @@ STOP_NUMBER_ARG = "stop_number"
 NUMBER_PLACEHOLDER = "&0&1"
 GOL_GG_URL = f"https://gol.gg/game/stats/{NUMBER_PLACEHOLDER}/page-game/"
 
-MEMORY_FAIL_GUARD = 500 # Each x times the program will append into the json and free memory
 CHAMP_TO_INT_DATABASE = './data/champ_mapping.yml'
 
 def parse_args() -> dict[str,Any]:
@@ -72,8 +71,8 @@ def main() -> int:
     """Entry point of script
         1. Get info from arguments
         2. Initialize
-        2. Go through `START_NUMBER_ARG` until `STOP_NUMBER_ARG` and compute urls
-        3. Save dataset into `OUTPUT_FILE_ARG`
+        3. Go through `START_NUMBER_ARG` until `STOP_NUMBER_ARG` and compute urls
+        4. Save dataset into `OUTPUT_FILE_ARG`
     """
 
     # 0. Get info from arguments
@@ -82,8 +81,6 @@ def main() -> int:
     # 2. Initialize
     scraped_data = list()
     champ_int_mapping = load_champ_to_int_dict(CHAMP_TO_INT_DATABASE)
-    with open(parsed_args[OUTPUT_FILE_ARG], 'w', encoding='utf-8') as output_file:
-        print(f"### CLEANING OUTPUT FILE...")
 
     # 3. Start loop 
     for current_game_number in range(parsed_args[START_NUMBER_ARG], parsed_args[STOP_NUMBER_ARG]):
@@ -93,19 +90,11 @@ def main() -> int:
             scraped_game = parse_gol_gg_game(game_url)
             normalize_data(scraped_game, champ_int_mapping)
             scraped_data.append(scraped_game)
-
-            # RAM fail guard: don't store too much info in memory, periodically empty it
-            ### Currently disabled because of issue with appending json lists
-            if current_game_number % MEMORY_FAIL_GUARD == 0 and False:
-                with open(parsed_args[OUTPUT_FILE_ARG], 'a', encoding='utf-8') as output_file:
-                    print(f"### CHECKPOINT - OUTPUTING DATA INTO {parsed_args[OUTPUT_FILE_ARG]}")
-                    json.dump(scraped_data, output_file, indent=2)
-                scraped_data = []
         except Exception as e:
             print(f">>> ERROR in {current_game_number} : {str(e)}")
 
     # 4. Save data
-    with open(parsed_args[OUTPUT_FILE_ARG], 'a', encoding='utf-8') as output_file:
+    with open(parsed_args[OUTPUT_FILE_ARG], 'w', encoding='utf-8') as output_file:
         print(f"### FINAL - OUTPUTING DATA INTO {parsed_args[OUTPUT_FILE_ARG]}")
         json.dump(scraped_data, output_file, indent=2)
     return 0
