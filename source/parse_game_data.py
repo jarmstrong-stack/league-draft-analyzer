@@ -213,8 +213,7 @@ def normalize_data(result_dict:dict, champ_mapping:dict) -> None:
     normalized_patch = result_dict[CONST.PATCH_DATA].replace(' v', '').replace('.', '') # v14.18 into 1418
     # Hack single digit patch numbers (.1, .2, .3, etc..) to (.01, .02, .03)
     if len(normalized_patch) == 3:
-        normalized_patch += normalized_patch[2]
-        normalized_patch[2] = "0"
+        normalized_patch = normalized_patch.replace(normalized_patch, f"{normalized_patch[:2] + '0' + normalized_patch[2]}")
     result_dict[CONST.PATCH_DATA] = int(normalized_patch)
 
     # game-date
