@@ -30,6 +30,8 @@
 """
 
 import sys
+import json
+import yaml
 import requests
 import argparse
 from bs4 import BeautifulSoup
@@ -42,8 +44,11 @@ OUTPUT_FILE_ARG = "output_file"
 START_NUMBER_ARG = "start_number"
 STOP_NUMBER_ARG = "stop_number"
 
-NUMBER_PLACEHOLDER:str = "&0&1"
-GOL_GG_URL:str = f"https://gol.gg/game/stats/{NUMBER_PLACEHOLDER}/page-game"
+NUMBER_PLACEHOLDER = "&0&1"
+GOL_GG_URL = f"https://gol.gg/game/stats/{NUMBER_PLACEHOLDER}/page-game/"
+
+MEMORY_FAIL_GUARD = 500 # Each x times the program will append into the json and free memory
+CHAMP_TO_INT_DATABASE = './data/champ_mapping.yml'
 
 def parse_args() -> dict[str,Any]:
     """Parse required args for script"""
@@ -62,13 +67,43 @@ def parse_args() -> dict[str,Any]:
 def main() -> int:
     """Entry point of script
         1. Get info from arguments
-        2. 
+        2. Initialize
+        2. Go through `START_NUMBER_ARG` until `STOP_NUMBER_ARG` and compute urls
+        3. Save dataset into `OUTPUT_FILE_ARG`
     """
-    # 1. Get info from arguments
+
+    # 0. Get info from arguments
     parsed_args:dict = parse_args()
 
-    # 2. 
+    # 2. Initialize
+    scraped_data = list()
+    champ_int_mapping = load_champ_to_int_dict(CHAMP_TO_INT_DATABASE)
+    with open(parsed_args[OUTPUT_FILE_ARG], 'w', encoding='utf-8') as output_file:
+        print(f"### CLEANING OUTPUT FILE...")
 
+    # 3. Start loop 
+    for current_game_number in range(parsed_args[START_NUMBER_ARG], parsed_args[STOP_NUMBER_ARG]):
+        print(f">>> Parsing game number {current_game_number}")
+        try:
+            game_url = GOL_GG_URL.replace(NUMBER_PLACEHOLDER, str(current_game_number))
+            scraped_game = parse_gol_gg_game(game_url)
+            normalize_data(scraped_game, champ_int_mapping)
+            scraped_data.append(scraped_game)
+
+            # RAM fail guard: don't store too much info in memory, periodically empty it
+            ### Currently disabled because of issue with appending json lists
+            if current_game_number % MEMORY_FAIL_GUARD == 0 and False:
+                with open(parsed_args[OUTPUT_FILE_ARG], 'a', encoding='utf-8') as output_file:
+                    print(f"### CHECKPOINT - OUTPUTING DATA INTO {parsed_args[OUTPUT_FILE_ARG]}")
+                    json.dump(scraped_data, output_file, indent=2)
+                scraped_data = []
+        except Exception as e:
+            print(f">>> ERROR in {current_game_number} : {str(e)}")
+
+    # 4. Save data
+    with open(parsed_args[OUTPUT_FILE_ARG], 'a', encoding='utf-8') as output_file:
+        print(f"### FINAL - OUTPUTING DATA INTO {parsed_args[OUTPUT_FILE_ARG]}")
+        json.dump(scraped_data, output_file, indent=2)
     return 0
 
 def parse_gol_gg_game(url:str) -> dict:
@@ -103,8 +138,7 @@ def parse_gol_gg_game(url:str) -> dict:
 
     # Ensure the request was successful
     if response.status_code != 200:
-        print(f"Request failed with status code {response.status_code}")
-        raise Exception("Failed to request url")
+        raise Exception(f"Request failed with status code {response.status_code}")
     
     # Parse the page with BeautifulSoup
     soup = BeautifulSoup(response.content, 'html.parser')
@@ -162,7 +196,7 @@ def parse_gol_gg_game(url:str) -> dict:
 
     return result_dict
 
-def normalize_data(result_dict:dict) -> None:
+def normalize_data(result_dict:dict, champ_mapping:dict) -> None:
     """Normalize data from `parse_gol_gg_game` into model friendly data
     
     - game-time: str('28:10') > int(1681) # seconds
@@ -183,16 +217,63 @@ def normalize_data(result_dict:dict) -> None:
     game_date = result_dict[CONST.GAMEDATE_DATA].split(' ')[0].replace('-', '') # Get YYYYMMDD date from game date
     result_dict[CONST.GAMEDATE_DATA] = int(game_date)
 
-def champ_to_int(champ_name:str) -> int:
-    """Parses a champ name(str) to it's assigned int"""
-    return 1
+    # Champs
+    def parse_champs_helper(entry):
+        """Handles parsing picked and banned champs from result_dict"""
+        if isinstance(entry, dict):
+            for role, champ in entry.items():
+                entry[role] = get_champ_int_by_name(champ, champ_mapping, CHAMP_TO_INT_DATABASE)
+        elif isinstance(entry, list):
+            for i in range(len(entry)):
+                entry[i] = get_champ_int_by_name(entry[i], champ_mapping, CHAMP_TO_INT_DATABASE)
+    parse_champs_helper(result_dict[CONST.PICK_DATA][CONST.BLUE_SIDE])
+    parse_champs_helper(result_dict[CONST.PICK_DATA][CONST.RED_SIDE])
+    parse_champs_helper(result_dict[CONST.BAN_DATA][CONST.BLUE_SIDE])
+    parse_champs_helper(result_dict[CONST.BAN_DATA][CONST.RED_SIDE])
+
+def load_champ_to_int_dict(yml_path: str) -> dict:
+    """Loads a yml style dict of champ mappings to integer
+
+    Example of yml:
+    ```yml
+    Yone: 1
+    Thresh: 2
+    Nidalee: 3```
+    """
+    parsed_dict = dict()
+    with open(yml_path, 'r', encoding='utf-8') as input_file:
+        yml_content = input_file.read()
+        parsed_dict = yaml.safe_load(yml_content)
+
+    # If we cant parse anything means the file does not exist, create it
+    if parsed_dict == None:
+        with open(yml_path, 'w'):
+            parsed_dict = dict()
+    return parsed_dict
+
+def write_to_champ_to_int_dict(yml_path: str, new_dict: dict) -> None:
+    """Override champ to dict mapping file in `yml_path` with `new_dict`"""
+    print("### Updating champ to int mapping...")
+    with open(yml_path, 'w', encoding='utf-8') as input_file:
+        input_file.write(yaml.dump(new_dict, sort_keys=False))
+
+def get_champ_int_by_name(champ_name: str, champ_mapping: dict, yml_file: str) -> int:
+    """Uses `champ_mapping` to get a champion's id/integer value by their name
+    Will add the champ if the name is not found in the database yet
+    """
+    if champ_name in champ_mapping:
+        return champ_mapping[champ_name]
+    
+    # Calculate new champ's integer value and add it
+    if len(champ_mapping) == 0:
+        next_int_value = 1
+    else:
+        highest_champ:str = max(champ_mapping, key=champ_mapping.get)
+        next_int_value:int = champ_mapping[highest_champ] + 1
+    champ_mapping[champ_name] = next_int_value
+    write_to_champ_to_int_dict(yml_file, champ_mapping)
 
 if __name__ == "__main__":
     ret:int = main()
     assert isinstance(ret, int)
-
-    a = parse_gol_gg_game("https://gol.gg/game/stats/62439/page-game/")
-    normalize_data(a)
-    print(a)
-
     sys.exit(ret)
