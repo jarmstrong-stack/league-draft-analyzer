@@ -1,7 +1,7 @@
 """
     Parses game data from `gol.gg` into a league-draft-analyzer readable format
 
-    Json format:
+    Json format: # Note that Champs are normalized into int's
     {
         "pick":{
             "blue": dict[int:Champ], # Where int describes champ's lane assignment
@@ -9,8 +9,8 @@
         },
 
         "ban":{
-            "blue": list[Champs],
-            "red":  list[Champs]
+            "blue": list[Champ], 
+            "red":  list[Champ]
         },
 
         "tournament": str,
@@ -266,12 +266,13 @@ def get_champ_int_by_name(champ_name: str, champ_mapping: dict, yml_file: str) -
     
     # Calculate new champ's integer value and add it
     if len(champ_mapping) == 0:
-        next_int_value = 1
+        new_int_value = 1
     else:
         highest_champ:str = max(champ_mapping, key=champ_mapping.get)
-        next_int_value:int = champ_mapping[highest_champ] + 1
-    champ_mapping[champ_name] = next_int_value
+        new_int_value:int = champ_mapping[highest_champ] + 1
+    champ_mapping[champ_name] = new_int_value 
     write_to_champ_to_int_dict(yml_file, champ_mapping)
+    return new_int_value 
 
 if __name__ == "__main__":
     ret:int = main()
