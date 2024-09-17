@@ -51,8 +51,6 @@ STOP_NUMBER_ARG = "stop_number"
 NUMBER_PLACEHOLDER = "&0&1"
 GOL_GG_URL = f"https://gol.gg/game/stats/{NUMBER_PLACEHOLDER}/page-game/"
 
-CHAMP_TO_INT_DATABASE = './data/champ_mapping.yml'
-
 def parse_args() -> dict[str,Any]:
     """Parse required args for script"""
     parser = argparse.ArgumentParser("game_data_parser_py")
@@ -80,7 +78,7 @@ def main() -> int:
 
     # 2. Initialize
     scraped_data = list()
-    champ_int_mapping = load_champ_to_int_dict(CHAMP_TO_INT_DATABASE)
+    champ_int_mapping = load_champ_to_int_dict(CONST.CHAMP_TO_INT_DATABASE)
 
     # 3. Start loop 
     for current_game_number in range(parsed_args[START_NUMBER_ARG], parsed_args[STOP_NUMBER_ARG]):
@@ -205,7 +203,7 @@ def normalize_data(result_dict:dict, champ_mapping:dict) -> None:
     # patch
     normalized_patch = result_dict[CONST.PATCH_DATA].replace(' v', '').replace('.', '') # v14.18 into 1418
     # Hack single digit patch numbers (.1, .2, .3, etc..) to (.01, .02, .03)
-    if len(normalized_patch) == 3:
+    if len(result_dict[CONST.PATCH_DATA].replace(' v', '').split('.')[1]) == 1:
         normalized_patch = normalized_patch.replace(normalized_patch, normalized_patch[:2] + '0' + normalized_patch[2])
     result_dict[CONST.PATCH_DATA] = int(normalized_patch)
 
@@ -218,10 +216,10 @@ def normalize_data(result_dict:dict, champ_mapping:dict) -> None:
         """Handles parsing picked and banned champs from result_dict"""
         if isinstance(entry, dict):
             for role, champ in entry.items():
-                entry[role] = get_champ_int_by_name(champ, champ_mapping, CHAMP_TO_INT_DATABASE)
+                entry[role] = get_champ_int_by_name(champ, champ_mapping, CONST.CHAMP_TO_INT_DATABASE)
         elif isinstance(entry, list):
             for i in range(len(entry)):
-                entry[i] = get_champ_int_by_name(entry[i], champ_mapping, CHAMP_TO_INT_DATABASE)
+                entry[i] = get_champ_int_by_name(entry[i], champ_mapping, CONST.CHAMP_TO_INT_DATABASE)
     parse_champs_helper(result_dict[CONST.PICK_DATA][CONST.BLUE_SIDE])
     parse_champs_helper(result_dict[CONST.PICK_DATA][CONST.RED_SIDE])
     parse_champs_helper(result_dict[CONST.BAN_DATA][CONST.BLUE_SIDE])

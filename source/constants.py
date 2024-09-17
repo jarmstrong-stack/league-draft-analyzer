@@ -6,6 +6,7 @@
 LDA_EMPTY_VALUE = "lda_empty"
 LDA_NOT_USED_VALUE = "lda_not_used"
 LDA_BAD_VALUE = "lda_bad_value"
+CHAMP_TO_INT_DATABASE = './data/champ_mapping.yml'
 
 ### Game data dict
 PICK_DATA = "pick"
@@ -19,7 +20,7 @@ GAMEDATE_DATA = "game-date"
 GAMETIME_DATA = "game-time"
 GAMERESULT_DATA = "result"
 
-### 
+### Results
 BLUE_WIN = 0
 RED_WIN = 1
 
