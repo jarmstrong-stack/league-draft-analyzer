@@ -1,6 +1,3 @@
-# Add timer to game parser
-Add timer to display in game parser to show how long the parsing took and games per second
-
 # Synergy team values(win-rate based)
 Compute champion pairings synergy win-rate based
 

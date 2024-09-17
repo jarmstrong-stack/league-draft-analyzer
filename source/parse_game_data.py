@@ -34,6 +34,7 @@
 """
 
 import sys
+import time
 import json
 import yaml
 import requests
@@ -71,17 +72,19 @@ def main() -> int:
         2. Initialize
         3. Go through `START_NUMBER_ARG` until `STOP_NUMBER_ARG` and compute urls
         4. Save dataset into `OUTPUT_FILE_ARG`
+        5. Print finish analytics
     """
 
     # 0. Get info from arguments
     parsed_args:dict = parse_args()
 
     # 2. Initialize
+    time_start = time.time()
     scraped_data = list()
     champ_int_mapping = load_champ_to_int_dict(CONST.CHAMP_TO_INT_DATABASE)
 
     # 3. Start loop 
-    for current_game_number in range(parsed_args[START_NUMBER_ARG], parsed_args[STOP_NUMBER_ARG]):
+    for current_game_number in range(parsed_args[START_NUMBER_ARG], parsed_args[STOP_NUMBER_ARG] + 1):
         print(f">>> Parsing game number {current_game_number}")
         try:
             game_url = GOL_GG_URL.replace(NUMBER_PLACEHOLDER, str(current_game_number))
@@ -93,8 +96,19 @@ def main() -> int:
 
     # 4. Save data
     with open(parsed_args[OUTPUT_FILE_ARG], 'w', encoding='utf-8') as output_file:
-        print(f"### FINAL - OUTPUTING DATA INTO {parsed_args[OUTPUT_FILE_ARG]}")
         json.dump(scraped_data, output_file, indent=2)
+
+    # 5. Finish analytics
+    time_taken = round(time.time() - time_start, 3)
+    total_games = len(scraped_data)
+    games_per_second = round(total_games / time_taken, 3)
+
+    print(f"#" * 38)
+    print(f"# Total games parsed: {total_games}")
+    print(f"# Time taken: {time_taken}s")
+    print(f"# Games per second: {games_per_second}g/s")
+    print(f"# Output to: {parsed_args[OUTPUT_FILE_ARG]}")
+    print(f"#" * 38)
     return 0
 
 def parse_gol_gg_game(url:str) -> dict:
