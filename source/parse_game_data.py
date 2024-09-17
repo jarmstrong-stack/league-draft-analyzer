@@ -77,6 +77,8 @@ def main() -> int:
 
     # 0. Get info from arguments
     parsed_args:dict = parse_args()
+    if parsed_args[START_NUMBER_ARG] > parsed_args[STOP_NUMBER_ARG]:
+        raise ValueError("Start number is higher than stop number...")
 
     # 2. Initialize
     time_start = time.time()
@@ -85,7 +87,7 @@ def main() -> int:
 
     # 3. Start loop 
     for current_game_number in range(parsed_args[START_NUMBER_ARG], parsed_args[STOP_NUMBER_ARG] + 1):
-        print(f">>> Parsing game number {current_game_number}")
+        print(f">>> Parsing game number {current_game_number}/{parsed_args[STOP_NUMBER_ARG]}")
         try:
             game_url = GOL_GG_URL.replace(NUMBER_PLACEHOLDER, str(current_game_number))
             scraped_game = parse_gol_gg_game(game_url)
