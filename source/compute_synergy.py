@@ -2,13 +2,16 @@
     Computes champion pairing synergies
 
     Takes as input a `league-draft-analyzer` formatted json file and adds inplace
-    the computed synergies (win-rate based) of the blue and red team
+    the computed synergies (win-rate based) of the blue and red team, or creates a new file
+    with the data and synergies if given the optional argument
+
+    How to run:
+    $ python3 source/compute_synergy.py <input.json> -output_file <optional_output.json>
 """
 
 import sys
 import json
 import argparse
-from itertools import combinations
 from collections import defaultdict
 from typing import Any
 
@@ -17,6 +20,14 @@ import constants as CONST
 ### Constants
 INPUT_FILE_ARG = "input_file"
 OUTPUT_FILE_ARG = "output_file"
+
+# Define the role-specific pairs we're interested in
+# (e.g., {Top, Jungle}, {Mid, Jungle}, {ADC, Support})
+role_pairs = [
+    (CONST.TOP_ROLE, CONST.JGL_ROLE),
+    (CONST.JGL_ROLE, CONST.MID_ROLE),
+    (CONST.ADC_ROLE, CONST.SUP_ROLE)
+]
 
 def parse_args() -> dict[str,Any]:
     """Parse required args for script"""
@@ -61,12 +72,13 @@ def main():
     print(f"> Computed synergies: {len(pair_synergy)}")
 
     # 5. Add synergies to data
-    updated_data = add_synergy_to_data(data_to_compute, pair_synergy)
+    for game in data_to_compute:
+        add_synergy_to_data(game, pair_synergy)
     print(f"> Synergies added to data")
     
     # 6. Write data
     with open(parsed_args[OUTPUT_FILE_ARG], 'w') as f:
-        json.dump(updated_data, f, indent=2)
+        json.dump(data_to_compute, f, indent=2)
     print(f"> Wrote data to: {parsed_args[OUTPUT_FILE_ARG]}")
 
     return 0
@@ -76,14 +88,6 @@ def calculate_role_specific_synergy(data):
     # Dictionary to track win rates for champion pairs
     pair_win_count = defaultdict(int)
     pair_game_count = defaultdict(int)
-
-    # Define the role-specific pairs we're interested in
-    # (e.g., {Top, Jungle}, {Mid, Jungle}, {ADC, Support})
-    role_pairs = [
-        (CONST.TOP_ROLE, CONST.JGL_ROLE),
-        (CONST.JGL_ROLE, CONST.MID_ROLE),
-        (CONST.ADC_ROLE, CONST.SUP_ROLE)
-    ]
 
     # First pass: collect win/loss statistics for each role-specific champion pair
     for game in data:
@@ -115,31 +119,31 @@ def calculate_role_specific_synergy(data):
 
     return pair_synergy
 
-# Add synergy values to each game in the dataset
-def add_synergy_to_data(data, pair_synergy):
-    for game in data:
-        blue_team = list(game[CONST.PICK_DATA][CONST.BLUE_SIDE].values())
-        red_team = list(game[CONST.PICK_DATA][CONST.RED_SIDE].values())
+def add_synergy_to_data(game, pair_synergy):
+    """Calculate synergy to specific game and add it to data"""
 
-        # Calculate the synergy score for the blue team
-        blue_synergy = 0.0
-        for pair in combinations(blue_team, 2):
-            sorted_pair = tuple(sorted(pair))
-            blue_synergy += pair_synergy.get(sorted_pair, 0.0)
+    blue_team = game[CONST.PICK_DATA][CONST.BLUE_SIDE]
+    red_team = game[CONST.PICK_DATA][CONST.RED_SIDE]
 
-        # Calculate the synergy score for the red team
-        red_synergy = 0.0
-        for pair in combinations(red_team, 2):
-            sorted_pair = tuple(sorted(pair))
-            red_synergy += pair_synergy.get(sorted_pair, 0.0)
+    # Calculate the role-specific synergy score for the blue team
+    blue_synergy = 0.0
+    for role1, role2 in role_pairs:
+        pair_blue = (blue_team[role1], blue_team[role2])
+        sorted_blue_pair = tuple(sorted(pair_blue))
+        blue_synergy += pair_synergy.get(sorted_blue_pair, 0.0) * 3
 
-        # Add synergy to the game data
-        game[CONST.SYNERGY_DATA] = {
-            CONST.BLUE_SIDE: round(blue_synergy, 3),
-            CONST.RED_SIDE: round(red_synergy, 3)
-        }
+    # Calculate the role-specific synergy score for the red team
+    red_synergy = 0.0
+    for role1, role2 in role_pairs:
+        pair_red = (red_team[role1], red_team[role2])
+        sorted_red_pair = tuple(sorted(pair_red))
+        red_synergy += pair_synergy.get(sorted_red_pair, 0.0) * 3
 
-    return data
+    # Add the computed synergies for both teams
+    game[CONST.SYNERGY_DATA] = {
+        CONST.BLUE_SIDE: round(blue_synergy, 3),
+        CONST.RED_SIDE: round(red_synergy, 3)
+    }
 
 if __name__ == "__main__":
     ret:int = main()

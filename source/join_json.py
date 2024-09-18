@@ -1,6 +1,10 @@
 """
     Helper code to join large ammounts of `league-draft-analyzer` data
     into a single file
+
+    How to run:
+    $ python3 source/join_json.py
+    (parameters are changed in code)
 """
 
 import json
