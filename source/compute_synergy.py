@@ -80,9 +80,9 @@ def calculate_role_specific_synergy(data):
     # Define the role-specific pairs we're interested in
     # (e.g., {Top, Jungle}, {Mid, Jungle}, {ADC, Support})
     role_pairs = [
-        ("1", "2"),  # Top and Jungle
-        ("2", "3"),  # Jungle and Mid
-        ("4", "5")   # ADC and Support
+        (CONST.TOP_ROLE, CONST.JGL_ROLE),
+        (CONST.JGL_ROLE, CONST.MID_ROLE),
+        (CONST.ADC_ROLE, CONST.SUP_ROLE)
     ]
 
     # First pass: collect win/loss statistics for each role-specific champion pair

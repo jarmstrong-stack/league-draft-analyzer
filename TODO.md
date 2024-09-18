@@ -1,11 +1,3 @@
-# Role assigments in constants
-TOP = 1
-JG = 2
-...
-
-# Synergy team values(win-rate based)
-Compute champion pairings synergy win-rate based
-
 # Make a "meta-proof" model
 Find a way to make this model to be meta-proof in a way.
 

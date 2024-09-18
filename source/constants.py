@@ -27,5 +27,12 @@ SYNERGY_DATA = "synergy"
 BLUE_WIN = 0
 RED_WIN = 1
 
+### Roles
+TOP_ROLE = "1"
+JGL_ROLE = "2"
+MID_ROLE = "3"
+ADC_ROLE = "4"
+SUP_ROLE = "5"
+
 ### gol.gg constants
 GOL_GG_WIN = "WIN"
