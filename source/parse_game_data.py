@@ -54,7 +54,7 @@ GOL_GG_URL = f"https://gol.gg/game/stats/{NUMBER_PLACEHOLDER}/page-game/"
 
 def parse_args() -> dict[str,Any]:
     """Parse required args for script"""
-    parser = argparse.ArgumentParser("game_data_parser_py")
+    parser = argparse.ArgumentParser("parse_game_data_py")
     parser.add_argument(OUTPUT_FILE_ARG, help="Where game data output will be written into(json).", type=str)
     parser.add_argument(START_NUMBER_ARG, help="Which game number to start.", type=int)
     parser.add_argument(STOP_NUMBER_ARG, help="Which game number to stop.", type=int)
@@ -75,7 +75,7 @@ def main() -> int:
         5. Print finish analytics
     """
 
-    # 0. Get info from arguments
+    # 1. Get info from arguments
     parsed_args:dict = parse_args()
     if parsed_args[START_NUMBER_ARG] > parsed_args[STOP_NUMBER_ARG]:
         raise ValueError("Start number is higher than stop number...")

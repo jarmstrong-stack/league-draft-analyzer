@@ -1,3 +1,8 @@
+# Role assigments in constants
+TOP = 1
+JG = 2
+...
+
 # Synergy team values(win-rate based)
 Compute champion pairings synergy win-rate based
 
