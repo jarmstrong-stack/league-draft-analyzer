@@ -10,6 +10,9 @@ DATA_FOLDER = './data'
 CHAMP_TO_INT_DATABASE = f'{DATA_FOLDER}/champ_mapping.yml'
 GAME_DATABASE = f'{DATA_FOLDER}/all_games.json'
 
+# driver args
+DRIVER_ACTION = "action"
+
 ### Game data dict
 PICK_DATA = "pick"
 BAN_DATA  = "ban"
