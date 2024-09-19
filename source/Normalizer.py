@@ -56,3 +56,14 @@ class Normalizer(LDAClass):
 
         return normalized_data
 
+    def picks(self, data:dict):
+        """picks preprocessor"""
+
+    def bans(self, data:dict):
+        """bans preprocessor"""
+
+    def patch(self, data:dict):
+        """patch preprocessor"""
+
+    def synergy(self, data:dict):
+        """synergy preprocessor"""

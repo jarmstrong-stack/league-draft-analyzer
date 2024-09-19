@@ -1,8 +1,7 @@
-# Build a normalization system for neural net
-Make it so its very easy to change what data we are inputting
-and make it normalize automatically by just changing what we input
+# Build feature processors
+ye, code the funcs,
 
-Maybe will need to make functions and call getattr() to do this dinamically
+please research what is the best way and how to do it, this is a big part
 
 # Make a "meta-proof" model
 Find a way to make this model to be meta-proof in a way.
