@@ -3,11 +3,13 @@
 """
 
 from Normalizer import Normalizer
+import constants as CONST
+import test_data as TEST
 
 def main(args:dict) -> int:
     """This is the function that is called on every process after driver.py"""
-    d = {"a": "1", "b": "2"}
-    f = ["a", "b"]
+    d = TEST.PCS_GAME
+    f = [CONST.PICK_DATA, CONST.BAN_DATA, CONST.SYNERGY_DATA, CONST.PATCH_DATA]
     n = Normalizer(f)
     p = n.normalize(d)
     return 0

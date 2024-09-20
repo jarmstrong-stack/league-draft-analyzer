@@ -13,6 +13,6 @@ class LDAClass:
     def __new__(cls, *args, **kwargs):
         cls.logger = logging.getLogger(cls.__name__)
         local_logger.info("Instantiating class %s", cls.__name__)
-        
+
         instance = super(LDAClass, cls).__new__(cls)
         return instance

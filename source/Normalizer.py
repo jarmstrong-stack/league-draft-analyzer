@@ -4,6 +4,9 @@
     Will handle the data before being inputted into LDA neural net
 """
 
+import torch
+
+import constants as CONST
 from LDAClass import LDAClass
 
 class Normalizer(LDAClass):
@@ -51,19 +54,34 @@ class Normalizer(LDAClass):
             normalized_data[feature] = normalized_feature
 
             self.logger.info(f"Successefully normalized {feature}.")
-            self.logger.info(f"Before: \n{data[feature]}")
-            self.logger.info(f"After: \n{normalized_data[feature]}")
+            self.logger.info(f"Before: {data[feature]}")
+            self.logger.info(f"After: {normalized_data[feature]}")
 
+        self.logger.info("-------------------------")
+        self.logger.info(f"debug: Normalized data: {normalized_data}")
+        self.logger.info("-------------------------")
         return normalized_data
 
-    def picks(self, data:dict):
-        """picks preprocessor"""
+    def pick(self, data:dict):
+        """picks preprocessor (dict to list)"""
+        blue_picks = [data[CONST.PICK_DATA][CONST.BLUE_SIDE][str(i)] for i in range(1, 6)]
+        red_picks = [data[CONST.PICK_DATA][CONST.RED_SIDE][str(i)] for i in range(1, 6)]
+        return {
+            CONST.BLUE_SIDE: torch.tensor(blue_picks), CONST.RED_SIDE: torch.tensor(red_picks)
+        }
 
-    def bans(self, data:dict):
+    def ban(self, data:dict):
         """bans preprocessor"""
+        return {
+            CONST.BLUE_SIDE: torch.tensor(data[CONST.BAN_DATA][CONST.BLUE_SIDE]),
+            CONST.RED_SIDE: torch.tensor(data[CONST.BAN_DATA][CONST.RED_SIDE])
+        }
 
     def patch(self, data:dict):
         """patch preprocessor"""
+        return torch.tensor(data[CONST.PATCH_DATA])
 
     def synergy(self, data:dict):
-        """synergy preprocessor"""
+        """synergy preprocessor (red synergy - blue synergy)"""
+        return torch.tensor(round(data[CONST.SYNERGY_DATA][CONST.RED_SIDE] - data[CONST.SYNERGY_DATA][CONST.BLUE_SIDE], 3))
+
