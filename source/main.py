@@ -3,6 +3,7 @@
 """
 
 from Normalizer import Normalizer
+from LDANet import LDANet
 import constants as CONST
 import test_data as TEST
 
@@ -12,4 +13,6 @@ def main(args:dict) -> int:
     f = [CONST.PICK_DATA, CONST.BAN_DATA, CONST.SYNERGY_DATA, CONST.PATCH_DATA]
     n = Normalizer(f)
     p = n.normalize(d)
+    
+    net = LDANet()
     return 0

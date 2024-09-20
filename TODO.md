@@ -1,7 +1,4 @@
-# Build feature processors
-ye, code the funcs,
-
-please research what is the best way and how to do it, this is a big part
+# Code neural net
 
 # Make a "meta-proof" model
 Find a way to make this model to be meta-proof in a way.
