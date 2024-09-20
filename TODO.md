@@ -1,4 +1,7 @@
 # Code neural net
+Needs to preload game data and load champ mapping
+Also needs to instanciate its own Normalize class.
+needs to handle new games(without synergy calc, because Normalize doesnt do it)
 
 # Make a "meta-proof" model
 Find a way to make this model to be meta-proof in a way.
