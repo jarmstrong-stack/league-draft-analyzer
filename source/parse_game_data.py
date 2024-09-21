@@ -232,18 +232,19 @@ def normalize_data(result_dict:dict, champ_mapping:dict) -> None:
     result_dict[CONST.GAMEDATE_DATA] = int(game_date)
 
     # Champs
-    def parse_champs_helper(entry):
-        """Handles parsing picked and banned champs from result_dict"""
-        if isinstance(entry, dict):
-            for role, champ in entry.items():
-                entry[role] = get_champ_int_by_name(champ, champ_mapping, CONST.CHAMP_TO_INT_DATABASE)
-        elif isinstance(entry, list):
-            for i in range(len(entry)):
-                entry[i] = get_champ_int_by_name(entry[i], champ_mapping, CONST.CHAMP_TO_INT_DATABASE)
-    parse_champs_helper(result_dict[CONST.PICK_DATA][CONST.BLUE_SIDE])
-    parse_champs_helper(result_dict[CONST.PICK_DATA][CONST.RED_SIDE])
-    parse_champs_helper(result_dict[CONST.BAN_DATA][CONST.BLUE_SIDE])
-    parse_champs_helper(result_dict[CONST.BAN_DATA][CONST.RED_SIDE])
+    parse_champs_helper(result_dict[CONST.PICK_DATA][CONST.BLUE_SIDE], champ_mapping)
+    parse_champs_helper(result_dict[CONST.PICK_DATA][CONST.RED_SIDE], champ_mapping)
+    parse_champs_helper(result_dict[CONST.BAN_DATA][CONST.BLUE_SIDE], champ_mapping)
+    parse_champs_helper(result_dict[CONST.BAN_DATA][CONST.RED_SIDE], champ_mapping)
+
+def parse_champs_helper(entry, champ_mapping):
+    """Handles parsing picked and banned champs from result_dict"""
+    if isinstance(entry, dict):
+        for role, champ in entry.items():
+            entry[role] = get_champ_int_by_name(champ, champ_mapping, CONST.CHAMP_TO_INT_DATABASE)
+    elif isinstance(entry, list):
+        for i in range(len(entry)):
+            entry[i] = get_champ_int_by_name(entry[i], champ_mapping, CONST.CHAMP_TO_INT_DATABASE)
 
 def load_champ_to_int_dict(yml_path: str) -> dict:
     """Loads a yml style dict of champ mappings to integer
@@ -271,10 +272,14 @@ def write_to_champ_to_int_dict(yml_path: str, new_dict: dict) -> None:
     with open(yml_path, 'w', encoding='utf-8') as input_file:
         input_file.write(yaml.dump(new_dict, sort_keys=False))
 
-def get_champ_int_by_name(champ_name: str, champ_mapping: dict, yml_file: str) -> int:
+def get_champ_int_by_name(champ_name: str|int, champ_mapping: dict, yml_file: str) -> int:
     """Uses `champ_mapping` to get a champion's id/integer value by their name
     Will add the champ if the name is not found in the database yet
     """
+    # Don't do anything if its already an int
+    if isinstance(champ_name, int):
+        return champ_name
+
     if champ_name in champ_mapping:
         return champ_mapping[champ_name]
     

@@ -57,9 +57,9 @@ class Normalizer(LDAClass):
             self.logger.info(f"Before: {data[feature]}")
             self.logger.info(f"After: {normalized_data[feature]}")
 
-        self.logger.info("-------------------------")
-        self.logger.info(f"debug: Normalized data: {normalized_data}")
-        self.logger.info("-------------------------")
+        # self.logger.info("-------------------------")
+        # self.logger.info(f"debug: Normalized data: {normalized_data}")
+        # self.logger.info("-------------------------")
         return normalized_data
 
     def pick(self, data:dict):
