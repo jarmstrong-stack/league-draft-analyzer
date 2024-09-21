@@ -1,5 +1,4 @@
 # Code neural net
-Define it
 Make good doc string documentation
 
 # Training func for net
