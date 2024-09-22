@@ -41,7 +41,6 @@ class Normalizer(LDAClass):
 
     def normalize(self, data:dict) -> dict:
         """Main function that normalizes given `data` and calls each preprocessing function"""
-        self.logger.info(f"Starting to normalize:\n{data}")
         normalized_data = dict()
 
         for feature in self.features_to_process:
@@ -53,13 +52,6 @@ class Normalizer(LDAClass):
             normalized_feature = processing_function(data)
             normalized_data[feature] = normalized_feature
 
-            self.logger.info(f"Successefully normalized {feature}.")
-            self.logger.info(f"Before: {data[feature]}")
-            self.logger.info(f"After: {normalized_data[feature]}")
-
-        # self.logger.info("-------------------------")
-        # self.logger.info(f"debug: Normalized data: {normalized_data}")
-        # self.logger.info("-------------------------")
         return normalized_data
 
     def pick(self, data:dict):

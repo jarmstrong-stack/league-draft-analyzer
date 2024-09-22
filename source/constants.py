@@ -5,13 +5,19 @@
 ### league-draft-analyzer
 LDA_EMPTY_VALUE = "lda_empty"
 LDA_NOT_USED_VALUE = "lda_not_used"
+LDA_WEIGHTS_PATH = "data/lda_net.pth"
 LDA_BAD_VALUE = "lda_bad_value"
 DATA_FOLDER = './data'
 CHAMP_TO_INT_DATABASE = f'{DATA_FOLDER}/champ_mapping.yml'
 GAME_DATABASE = f'{DATA_FOLDER}/all_games.json'
 
+# pytorch values
+DEVICE_CUDA = "cuda"
+
 # driver args
 DRIVER_ACTION = "action"
+DRIVER_TRAIN = "train"
+DRIVER_PREDICT = "predict"
 
 ### Game data dict
 PICK_DATA = "pick"

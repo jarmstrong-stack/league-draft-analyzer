@@ -1,10 +1,4 @@
-# Code neural net
-Make good doc string documentation
-
-# Training func for net
-make a training func for net
-either inside the net class
-or in a seperate file
+# improve neural net 
 
 # Make a "meta-proof" model
 Find a way to make this model to be meta-proof in a way.
