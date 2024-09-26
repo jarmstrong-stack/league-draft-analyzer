@@ -86,7 +86,7 @@ def train_model(model, dataset):
 
         # Compute average loss and accuracy
         train_accuracy = correct_predictions / total_predictions
-        print(f"Epoch {epoch + 1}/{TrainParams.EPOCHS} - Training loss: {train_loss:.4f}, Accuracy: {train_accuracy:.4f}, Time taken: {round((time.time() - epoch_start_time) / 60, 2)}s")
+        print(f"Epoch {epoch + 1}/{TrainParams.EPOCHS} - Training loss: {train_loss:.4f}, Accuracy: {train_accuracy:.4f}, Time taken: {round((time.time() - epoch_start_time) / 60, 2)}min")
 
         # Evaluate on validation set after each epoch
         val_loss, val_accuracy = evaluate_model(model, val_loader, criterion, device)
