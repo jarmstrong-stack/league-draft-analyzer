@@ -22,6 +22,7 @@ class Normalizer(LDAClass):
         (eg. "picks" will be normalized by self.picks(data))
     """
 
+    tensor_datatype = torch.float32 # datatype that tensors will be made in
     features_to_process: list[str]
 
     def __init__(self, features_to_process: list[str]) -> None:
@@ -59,21 +60,29 @@ class Normalizer(LDAClass):
         blue_picks = [data[CONST.PICK_DATA][CONST.BLUE_SIDE][str(i)] for i in range(1, 6)]
         red_picks = [data[CONST.PICK_DATA][CONST.RED_SIDE][str(i)] for i in range(1, 6)]
         return {
-            CONST.BLUE_SIDE: torch.tensor(blue_picks), CONST.RED_SIDE: torch.tensor(red_picks)
+            CONST.BLUE_SIDE: torch.tensor(blue_picks, dtype=self.tensor_datatype),
+            CONST.RED_SIDE: torch.tensor(red_picks, dtype=self.tensor_datatype)
         }
 
     def ban(self, data:dict):
         """bans preprocessor"""
         return {
-            CONST.BLUE_SIDE: torch.tensor(data[CONST.BAN_DATA][CONST.BLUE_SIDE]),
-            CONST.RED_SIDE: torch.tensor(data[CONST.BAN_DATA][CONST.RED_SIDE])
+            CONST.BLUE_SIDE: torch.tensor(data[CONST.BAN_DATA][CONST.BLUE_SIDE], dtype=self.tensor_datatype),
+            CONST.RED_SIDE: torch.tensor(data[CONST.BAN_DATA][CONST.RED_SIDE], dtype=self.tensor_datatype)
         }
 
     def patch(self, data:dict):
-        """patch preprocessor"""
-        return torch.tensor(data[CONST.PATCH_DATA])
+        """patch preprocessor (0-1 values)"""
+        # if patch not in data, just send 1
+        if not CONST.PATCH_DATA in data:
+            return torch.tensor(1, dtype=self.tensor_datatype)
+
+        patch_normalized = (data[CONST.PATCH_DATA] - 315) / 1103
+        return torch.tensor(patch_normalized, dtype=self.tensor_datatype).unsqueeze(0)
 
     def synergy(self, data:dict):
-        """synergy preprocessor (red synergy - blue synergy)"""
-        return torch.tensor(round(data[CONST.SYNERGY_DATA][CONST.RED_SIDE] - data[CONST.SYNERGY_DATA][CONST.BLUE_SIDE], 3))
+        """synergy preprocessor (red synergy - blue synergy)(0-1 values)"""
+        synergy_normalized = (data[CONST.SYNERGY_DATA][CONST.RED_SIDE] - data[CONST.SYNERGY_DATA][CONST.BLUE_SIDE])
+        synergy_normalized = (synergy_normalized + 9) / 18
+        return torch.tensor(round(synergy_normalized, 3), dtype=self.tensor_datatype).unsqueeze(0)
 

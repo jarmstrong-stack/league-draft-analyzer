@@ -1,4 +1,5 @@
-# improve neural net 
+# Expand network while checking what works and what doesnt
+obviously weight decay doesnt do shit
 
 # Make a "meta-proof" model
 Find a way to make this model to be meta-proof in a way.

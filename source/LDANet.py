@@ -7,7 +7,6 @@ import yaml
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import numpy as np
 
 import train
 import compute_synergy as CS
@@ -15,6 +14,7 @@ import parse_game_data as PG
 import constants as CONST
 from Normalizer import Normalizer
 from LDAClass import LDAClass
+from LDADataset import LDADataset
 
 class LDANet(nn.Module, LDAClass):
     """
@@ -102,12 +102,20 @@ class LDANet(nn.Module, LDAClass):
     synergy_values: dict
     game_data: list[dict]
 
+    # Architecture parameters
+    embedding_dimension: int = 6
+
     # Feature normalization
     normalizer: Normalizer
-    features_to_process: list[str] = [CONST.PICK_DATA, CONST.BAN_DATA, CONST.SYNERGY_DATA, CONST.PATCH_DATA]
+    features_to_process: list[str] = [
+        CONST.PICK_DATA,
+        CONST.BAN_DATA,
+        CONST.SYNERGY_DATA,
+        CONST.PATCH_DATA,
+    ] 
     feature_input_size: dict[str, int] = { # How much does each feature take to input
-        CONST.PICK_DATA: 10,
-        CONST.BAN_DATA: 10,
+        CONST.PICK_DATA: 10 * embedding_dimension,
+        CONST.BAN_DATA: 10 * embedding_dimension,
         CONST.TOURNAMENT_DATA: 1,
         CONST.GAMETIME_DATA: 1,
         CONST.PATCH_DATA: 1,
@@ -128,51 +136,80 @@ class LDANet(nn.Module, LDAClass):
         # Instantiate data normalizer
         self.normalizer = Normalizer(self.features_to_process)
         
-        # Calculate neural net input size
-        self.compute_input_size()
-        
         # Define neural net
         self.define()
 
     def define(self):
         """Defines neural network architecture"""
-        self.fc1 = nn.Linear(self.input_size, 128)
-        self.fc2 = nn.Linear(128, 256)
-        self.fc3 = nn.Linear(256, 128)
-        self.fc4 = nn.Linear(128, 64)
-        self.fc5 = nn.Linear(64, 32)
-        self.fc6 = nn.Linear(32, 16)
-        
-        # Output layer
-        self.output = nn.Linear(16, 1)
-        
+
+        # Embedding
+        self.champ_embedding = nn.Embedding(self.champion_count + 1, self.embedding_dimension)
+
         # Dropout layers for regularization to prevent overfitting
         self.dropout = nn.Dropout(p=0.3)
 
+        # LeakyRElU
+        self.leaky_relu = nn.LeakyReLU(negative_slope=0.05)
+
+        # Input
+        self.fc1 = nn.Linear(self.input_size, 256)
+
+        # Hidden
+        self.fc2 = nn.Linear(256, 32)
+        
+        # Output
+        self.output = nn.Linear(32, 1)
+
+        # Initialize weights
+        for m in self.modules():
+            if isinstance(m, nn.Linear):
+                nn.init.xavier_uniform_(m.weight)
+                nn.init.zeros_(m.bias)
+
     def forward(self, x):
         """Forward pass neural net"""
-        x = F.relu(self.fc1(x))
+        # Data preparation
+        picks = x[:10].long()
+        embedded_picks = self.champ_embedding(picks)
+        embedded_picks = torch.tensor(embedded_picks, dtype=self.normalizer.tensor_datatype).view(1, -1).flatten()
+
+        if CONST.BAN_DATA in self.features_to_process:
+            bans = x[10:20].long()
+            embedded_bans = self.champ_embedding(bans)
+            embedded_bans = torch.tensor(embedded_bans, dtype=self.normalizer.tensor_datatype).view(1, -1).flatten()
+            other_features = x[20:]
+            x = torch.cat((embedded_picks, embedded_bans, other_features))
+        else:
+            other_features = x[10:]
+            x = torch.cat((embedded_picks, other_features))
+
+        # Forward pass 
+        x = self.leaky_relu(self.fc1(x))
         x = self.dropout(x)
         
-        x = F.relu(self.fc2(x))
+        x = self.leaky_relu(self.fc2(x))
         x = self.dropout(x)
-        
-        x = F.relu(self.fc3(x))
-        x = F.relu(self.fc4(x))
-        x = F.relu(self.fc5(x))
-        x = F.relu(self.fc6(x))
         
         x = torch.sigmoid(self.output(x))
         return x
 
+    def monitor_weights(self):
+        """Prints weights, biass & gradients info"""
+        for name, param in self.named_parameters():
+            if param.requires_grad:
+                if param.grad is not None:
+                    print(f"{name}: Gradient norm {param.grad.norm()}")
+                    print(f"{name}: Gradient abs mean: {param.grad.abs().mean()}")
+                print(f"{name}: Mean weight {param.data.mean()}, Max weight {param.data.max()}, Min weight {param.data.min()}")
+
     def train_lda(self):
         """Train lda net"""
         # Setup dataset for training
-        lda_dataset = train.GameDataset(self.game_data)
+        lda_dataset = LDADataset(self.game_data)
         lda_dataset.prepare_input_data = self.handle_prediction_data # pyright: ignore
         
         # Start training
-        self.logger.info(f"Starting to train on {len(self.game_data)} games...")
+        self.logger.info(f"Starting to train on {len(lda_dataset)} games...")
         train.train_model(self, lda_dataset)
 
     def load_lda(self, weights_path:str):
@@ -222,17 +259,20 @@ class LDANet(nn.Module, LDAClass):
         if not isinstance(data[CONST.PICK_DATA][CONST.BLUE_SIDE], torch.Tensor):
             data = self.normalizer.normalize(data)
         
-        # Transform data in a tensor
-        np_data = np.concatenate([
-            data[CONST.PICK_DATA][CONST.BLUE_SIDE],
-            data[CONST.PICK_DATA][CONST.RED_SIDE],
-            data[CONST.BAN_DATA][CONST.BLUE_SIDE],
-            data[CONST.BAN_DATA][CONST.RED_SIDE],
-            [data[CONST.SYNERGY_DATA]],
-            [data[CONST.PATCH_DATA]]
-        ])
-        data = torch.Tensor(np_data).to(CONST.DEVICE_CUDA) # pyright: ignore
-        
+        # Concatenate all tensors
+        tensors_to_cat = list()
+        if CONST.PICK_DATA in self.features_to_process:
+            tensors_to_cat.append(data[CONST.PICK_DATA][CONST.BLUE_SIDE])
+            tensors_to_cat.append(data[CONST.PICK_DATA][CONST.RED_SIDE])
+        if CONST.BAN_DATA in self.features_to_process:
+            tensors_to_cat.append(data[CONST.BAN_DATA][CONST.BLUE_SIDE])
+            tensors_to_cat.append(data[CONST.BAN_DATA][CONST.RED_SIDE])
+        if CONST.SYNERGY_DATA in self.features_to_process:
+            tensors_to_cat.append(data[CONST.SYNERGY_DATA])
+        if CONST.PATCH_DATA in self.features_to_process:
+            tensors_to_cat.append(data[CONST.PATCH_DATA])
+
+        data = torch.cat(tuple(tensors_to_cat)).to(CONST.DEVICE_CUDA) # pyright: ignore
         return data
 
     def pad_or_trim_list(self, lst:list, target_size:int, pad_value=0):
@@ -262,8 +302,11 @@ class LDANet(nn.Module, LDAClass):
         self.synergy_values = CS.calculate_role_specific_synergy(self.game_data)
         self.logger.info(f"Loaded synergy values... len={len(self.synergy_values)}")
 
-    def compute_input_size(self):
+    @property
+    def input_size(self):
         """Compute neural net initial input size given the features to input"""
-        self.input_size = 0
+        self.compute = 0
         for feature in self.features_to_process:
-            self.input_size += self.feature_input_size[feature]
+            self.compute += self.feature_input_size[feature]
+        return self.compute
+        
