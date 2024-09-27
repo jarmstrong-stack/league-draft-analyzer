@@ -153,11 +153,12 @@ class LDANet(nn.Module, LDAClass):
         self.activation_fn = self.leaky_relu
 
         # Input
-        self.fc1 = nn.Linear(self.input_size, 256)
+        self.fc1 = nn.Linear(self.input_size, 312)
 
         # Hidden
-        self.fc2 = nn.Linear(256, 128)
-        self.fc3 = nn.Linear(128, 32)
+        self.fc2 = nn.Linear(312, 256)
+        self.fc3 = nn.Linear(256, 128)
+        self.fc4 = nn.Linear(128, 32)
         
         # Output
         self.output = nn.Linear(32, 1)
@@ -193,6 +194,9 @@ class LDANet(nn.Module, LDAClass):
         x = self.dropout(x)
 
         x = self.activation_fn(self.fc3(x))
+        x = self.dropout(x)
+
+        x = self.activation_fn(self.fc4(x))
 
         x = torch.sigmoid(self.output(x))
         return x
@@ -203,7 +207,6 @@ class LDANet(nn.Module, LDAClass):
             if param.requires_grad:
                 if param.grad is not None:
                     print(f"{name}: Gradient norm {param.grad.norm()}")
-                    print(f"{name}: Gradient abs mean: {param.grad.abs().mean()}")
                 print(f"{name}: Mean weight {param.data.mean()}, Max weight {param.data.max()}, Min weight {param.data.min()}")
 
     def train_lda(self):

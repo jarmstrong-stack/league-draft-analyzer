@@ -18,7 +18,7 @@ class TrainParams():
     RANDOM_STATE = 42
     BATCH_SIZE = 12
     LEARNING_RATE = 0.001
-    WEIGHT_DECAY = 0 # fuck this param, never again
+    WEIGHT_DECAY = 0.00001 # fuck this param, never again
     SAVE_PATH = CONST.LDA_WEIGHTS_PATH
 
 def train_model(model, dataset):
@@ -50,7 +50,8 @@ def train_model(model, dataset):
         epoch_start_time = time.time()
         count_1 = 0
         count_0 = 0
-        count_extremes = 0
+        count_gt_75 = 0
+        count_lw_25 = 0
 
         for batch in train_loader:
             inputs, labels = batch["data"].to(device), batch["label"].to(device)
@@ -59,13 +60,15 @@ def train_model(model, dataset):
             outputs = list()
             for game in range(len(inputs)):
                 output = model(inputs[game])
-                if output.item() > 0.5:
+                item_output = output.item()
+                if item_output > 0.5:
+                    if item_output > 0.75:
+                        count_gt_75 += 1
                     count_1 += 1
                 else:
+                    if item_output < 0.25:
+                        count_lw_25 += 1
                     count_0 += 1
-
-                if output.item() <= 0.25 or output.item() >= 0.75:
-                    count_extremes += 1
                 outputs.append(output)
             outputs = torch.stack(outputs)
             loss = criterion(outputs, labels.unsqueeze(1))
@@ -92,7 +95,8 @@ def train_model(model, dataset):
         val_loss, val_accuracy = evaluate_model(model, val_loader, criterion, device)
         print(f"Validation loss: {val_loss:.4f}, Validation accuracy: {val_accuracy:.4f}")
 
-        print(f"count_1={count_1};count_0={count_0};count_extremes={count_extremes}")
+        print(f"count_1={count_1};count_0={count_0}")
+        print(f"count_gt_75={count_gt_75};count_0={count_lw_25}")
 
     # Save the trained model
     torch.save(model.state_dict(), TrainParams.SAVE_PATH)
