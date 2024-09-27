@@ -1,5 +1,9 @@
 # Expand network while checking what works and what doesnt
-obviously weight decay doesnt do shit
+obviously weight decay doesnt do shit(xdd)
+
+# feature engineer
+expand synergy data...
+lane specific picks & bans...
 
 # Make a "meta-proof" model
 Find a way to make this model to be meta-proof in a way.
