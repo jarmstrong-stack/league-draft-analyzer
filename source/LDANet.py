@@ -109,7 +109,7 @@ class LDANet(nn.Module, LDAClass):
     normalizer: Normalizer
     features_to_process: list[str] = [
         CONST.PICK_DATA,
-        CONST.BAN_DATA,
+        # CONST.BAN_DATA,
         CONST.SYNERGY_DATA,
         CONST.PATCH_DATA,
     ] 

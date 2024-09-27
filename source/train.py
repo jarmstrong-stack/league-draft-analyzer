@@ -42,6 +42,7 @@ def train_model(model, dataset):
     device = torch.device(CONST.DEVICE_CUDA)
     model.to(device)
 
+    training_start_time = time.time()
     for epoch in range(TrainParams.EPOCHS):
         model.train()
         train_loss = 0.0
@@ -95,12 +96,19 @@ def train_model(model, dataset):
         val_loss, val_accuracy = evaluate_model(model, val_loader, criterion, device)
         print(f"Validation loss: {val_loss:.4f}, Validation accuracy: {val_accuracy:.4f}")
 
-        print(f"count_1={count_1};count_0={count_0}")
-        print(f"count_gt_75={count_gt_75};count_0={count_lw_25}")
+        # Print info regarding networks predictions
+        print(f"count_0={count_0};count_1={count_1};count_lw_25={count_lw_25};count_gt_75={count_gt_75}")
+
+    # Print time taken
+    print("#"*120)
+    minutes_taken = round((time.time() - training_start_time) / 60, 2)
+    print(f"# Training complete, took: {minutes_taken}min")
+    print(f"# Epochs per minute: {TrainParams.EPOCHS / minutes_taken}")
 
     # Save the trained model
     torch.save(model.state_dict(), TrainParams.SAVE_PATH)
-    print(f"Model saved at {TrainParams.SAVE_PATH}")
+    print(f"# Model saved at {TrainParams.SAVE_PATH}")
+    print("#"*120)
 
 def evaluate_model(model, val_loader, criterion, device):
     """
