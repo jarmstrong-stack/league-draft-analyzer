@@ -121,7 +121,7 @@ class LDANet(nn.Module, LDAClass):
         CONST.PATCH_DATA: 1,
         CONST.TEAMS_DATA: 2,
         CONST.GAMEDATE_DATA: 1,
-        CONST.SYNERGY_DATA: 1,
+        CONST.SYNERGY_DATA: 4 * 2, # `{number_of_synergies} * 2` for multi, `1` for single
         CONST.GAMERESULT_DATA: 1,
     }
 
@@ -141,6 +141,10 @@ class LDANet(nn.Module, LDAClass):
 
     def define(self):
         """Defines neural network architecture"""
+
+        # Compute input size
+        self.input_size = self.compute_input_size()
+        self.logger.info(f"Computed input size for first layer: {self.input_size}")
 
         # Embedding
         self.champ_embedding = nn.Embedding(self.champion_count + 1, self.embedding_dimension)
@@ -275,7 +279,11 @@ class LDANet(nn.Module, LDAClass):
             tensors_to_cat.append(data[CONST.BAN_DATA][CONST.BLUE_SIDE])
             tensors_to_cat.append(data[CONST.BAN_DATA][CONST.RED_SIDE])
         if CONST.SYNERGY_DATA in self.features_to_process:
-            tensors_to_cat.append(data[CONST.SYNERGY_DATA])
+            if isinstance(data[CONST.SYNERGY_DATA], dict):
+                tensors_to_cat.append(data[CONST.SYNERGY_DATA][CONST.BLUE_SIDE])
+                tensors_to_cat.append(data[CONST.SYNERGY_DATA][CONST.RED_SIDE])
+            else:
+                tensors_to_cat.append(data[CONST.SYNERGY_DATA])
         if CONST.PATCH_DATA in self.features_to_process:
             tensors_to_cat.append(data[CONST.PATCH_DATA])
 
@@ -309,8 +317,7 @@ class LDANet(nn.Module, LDAClass):
         self.synergy_values = CS.calculate_role_specific_synergy(self.game_data)
         self.logger.info(f"Loaded synergy values... len={len(self.synergy_values)}")
 
-    @property
-    def input_size(self):
+    def compute_input_size(self):
         """Compute neural net initial input size given the features to input"""
         self.compute = 0
         for feature in self.features_to_process:

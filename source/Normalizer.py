@@ -80,9 +80,26 @@ class Normalizer(LDAClass):
         patch_normalized = (data[CONST.PATCH_DATA] - 315) / 1103
         return torch.tensor(patch_normalized, dtype=self.tensor_datatype).unsqueeze(0)
 
-    def synergy(self, data:dict):
+    def single_synergy(self, data:dict):
         """synergy preprocessor (red synergy - blue synergy)(0-1 values)"""
         synergy_normalized = (data[CONST.SYNERGY_DATA][CONST.RED_SIDE] - data[CONST.SYNERGY_DATA][CONST.BLUE_SIDE])
         synergy_normalized = (synergy_normalized + 9) / 18
         return torch.tensor(round(synergy_normalized, 3), dtype=self.tensor_datatype).unsqueeze(0)
 
+    def multi_synergy(self, data:dict):
+        """synergy preprocessor (multi role)"""
+        blue_synergies = list(data[CONST.SYNERGY_DATA][CONST.BLUE_SIDE].values())
+        red_synergies = list(data[CONST.SYNERGY_DATA][CONST.RED_SIDE].values())
+        return {
+            CONST.BLUE_SIDE: torch.tensor(blue_synergies, dtype=self.tensor_datatype),
+            CONST.RED_SIDE: torch.tensor(red_synergies, dtype=self.tensor_datatype)
+        }
+
+    def synergy(self, data:dict):
+        """main synergy preprocessor, choses between single and multi role preprocessors"""
+        if isinstance(data[CONST.SYNERGY_DATA][CONST.BLUE_SIDE], dict):
+            return self.multi_synergy(data)
+        elif isinstance(data[CONST.SYNERGY_DATA][CONST.BLUE_SIDE], float):
+            return self.single_synergy(data)
+        else:
+            raise TypeError("Could not find synergy type")

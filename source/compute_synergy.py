@@ -23,11 +23,30 @@ OUTPUT_FILE_ARG = "output_file"
 
 # Define the role-specific pairs we're interested in
 # (e.g., {Top, Jungle}, {Mid, Jungle}, {ADC, Support})
-role_pairs = [
+all_role_pairs = [
     (CONST.TOP_ROLE, CONST.JGL_ROLE),
+    (CONST.TOP_ROLE, CONST.MID_ROLE),
+    (CONST.TOP_ROLE, CONST.ADC_ROLE),
+    (CONST.TOP_ROLE, CONST.SUP_ROLE),
+
     (CONST.JGL_ROLE, CONST.MID_ROLE),
-    (CONST.ADC_ROLE, CONST.SUP_ROLE)
+    (CONST.JGL_ROLE, CONST.ADC_ROLE),
+    (CONST.JGL_ROLE, CONST.SUP_ROLE),
+
+    (CONST.MID_ROLE, CONST.ADC_ROLE),
+    (CONST.MID_ROLE, CONST.SUP_ROLE),
+
+    (CONST.ADC_ROLE, CONST.SUP_ROLE),
 ]
+
+main_role_pairs = [
+    (CONST.TOP_ROLE, CONST.JGL_ROLE),
+    (CONST.MID_ROLE, CONST.JGL_ROLE),
+    (CONST.SUP_ROLE, CONST.JGL_ROLE),
+    (CONST.SUP_ROLE, CONST.ADC_ROLE),
+]
+
+role_pairs = main_role_pairs 
 
 def parse_args() -> dict[str,Any]:
     """Parse required args for script"""
@@ -84,7 +103,7 @@ def main():
     return 0
 
 def calculate_role_specific_synergy(data):
-    """Calculate champion pair synergy based on win rates"""
+    """Calculate champion pair synergy based on win rates."""
     # Dictionary to track win rates for champion pairs
     pair_win_count = defaultdict(int)
     pair_game_count = defaultdict(int)
@@ -93,7 +112,7 @@ def calculate_role_specific_synergy(data):
     for game in data:
         blue_team = game[CONST.PICK_DATA][CONST.BLUE_SIDE]
         red_team = game[CONST.PICK_DATA][CONST.RED_SIDE]
-        result = game[CONST.GAMERESULT_DATA] 
+        result = game[CONST.GAMERESULT_DATA]
 
         # Update win and game counts for blue team role-specific champion pairs
         for role1, role2 in role_pairs:
@@ -120,29 +139,33 @@ def calculate_role_specific_synergy(data):
     return pair_synergy
 
 def add_synergy_to_data(game, pair_synergy):
-    """Calculate synergy to specific game and add it to data"""
+    """Calculate synergy for a specific game and add it to data."""
 
     blue_team = game[CONST.PICK_DATA][CONST.BLUE_SIDE]
     red_team = game[CONST.PICK_DATA][CONST.RED_SIDE]
 
+    # Initialize dictionaries to store role-specific synergies
+    blue_synergy = {}
+    red_synergy = {}
+
     # Calculate the role-specific synergy score for the blue team
-    blue_synergy = 0.0
     for role1, role2 in role_pairs:
+        role_key = f"{role1}_{role2}"  # Create a string key for the role pair
         pair_blue = (blue_team[role1], blue_team[role2])
         sorted_blue_pair = tuple(sorted(pair_blue))
-        blue_synergy += pair_synergy.get(sorted_blue_pair, 0.0) * 3
+        blue_synergy[role_key] = pair_synergy.get(sorted_blue_pair, 0.0) * 3
 
     # Calculate the role-specific synergy score for the red team
-    red_synergy = 0.0
     for role1, role2 in role_pairs:
+        role_key = f"{role1}_{role2}"  # Create a string key for the role pair
         pair_red = (red_team[role1], red_team[role2])
         sorted_red_pair = tuple(sorted(pair_red))
-        red_synergy += pair_synergy.get(sorted_red_pair, 0.0) * 3
+        red_synergy[role_key] = pair_synergy.get(sorted_red_pair, 0.0) * 3
 
     # Add the computed synergies for both teams
     game[CONST.SYNERGY_DATA] = {
-        CONST.BLUE_SIDE: round(blue_synergy, 3),
-        CONST.RED_SIDE: round(red_synergy, 3)
+        CONST.BLUE_SIDE: {role: round(synergy, 3) for role, synergy in blue_synergy.items()},
+        CONST.RED_SIDE: {role: round(synergy, 3) for role, synergy in red_synergy.items()}
     }
 
 if __name__ == "__main__":

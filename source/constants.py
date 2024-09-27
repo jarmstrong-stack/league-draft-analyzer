@@ -9,7 +9,8 @@ LDA_WEIGHTS_PATH = "data/lda_net.pth"
 LDA_BAD_VALUE = "lda_bad_value"
 DATA_FOLDER = './data'
 CHAMP_TO_INT_DATABASE = f'{DATA_FOLDER}/champ_mapping.yml'
-GAME_DATABASE = f'{DATA_FOLDER}/all_games.json'
+#GAME_DATABASE = f'{DATA_FOLDER}/all_games.json'
+GAME_DATABASE = f'{DATA_FOLDER}/all_games_seperated_synergy.json'
 
 # pytorch values
 DEVICE_CUDA = "cuda"

@@ -52,7 +52,7 @@ def train_model(model, dataset):
         count_1 = 0
         count_0 = 0
         count_gt_75 = 0
-        count_lw_25 = 0
+        count_lt_25 = 0
 
         for batch in train_loader:
             inputs, labels = batch["data"].to(device), batch["label"].to(device)
@@ -68,7 +68,7 @@ def train_model(model, dataset):
                     count_1 += 1
                 else:
                     if item_output < 0.25:
-                        count_lw_25 += 1
+                        count_lt_25 += 1
                     count_0 += 1
                 outputs.append(output)
             outputs = torch.stack(outputs)
@@ -97,7 +97,7 @@ def train_model(model, dataset):
         print(f"Validation loss: {val_loss:.4f}, Validation accuracy: {val_accuracy:.4f}")
 
         # Print info regarding networks predictions
-        print(f"count_0={count_0};count_1={count_1};count_lw_25={count_lw_25};count_gt_75={count_gt_75}")
+        print(f"count_0={count_0};count_1={count_1};count_lt_25={count_lt_25};count_gt_75={count_gt_75}")
 
     # Print time taken
     print("#"*120)

@@ -15,11 +15,13 @@ class LDADataset(Dataset, LDAClass):
 
     Args:
         data (list of dicts): List of game data dictionaries.
+        fix_class_discrepency (bool): Flag to know if we should process the dataset evenly
     """
 
-    def __init__(self, data):
+    def __init__(self, data, fix_class_discrepency=True):
         self.data = data
-        self.check_for_result_discrepency()
+        if fix_class_discrepency:
+            self.check_for_result_discrepency()
 
     def __len__(self):
         return len(self.data)
