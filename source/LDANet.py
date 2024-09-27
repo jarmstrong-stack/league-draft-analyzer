@@ -103,7 +103,7 @@ class LDANet(nn.Module, LDAClass):
     game_data: list[dict]
 
     # Architecture parameters
-    embedding_dimension: int = 6
+    embedding_dimension: int = 12
 
     # Feature normalization
     normalizer: Normalizer
@@ -146,16 +146,18 @@ class LDANet(nn.Module, LDAClass):
         self.champ_embedding = nn.Embedding(self.champion_count + 1, self.embedding_dimension)
 
         # Dropout layers for regularization to prevent overfitting
-        self.dropout = nn.Dropout(p=0.3)
+        self.dropout = nn.Dropout(p=0.5)
 
-        # LeakyRElU
-        self.leaky_relu = nn.LeakyReLU(negative_slope=0.05)
+        # Define activation function 
+        self.leaky_relu = nn.LeakyReLU(negative_slope=0.1)
+        self.activation_fn = self.leaky_relu
 
         # Input
         self.fc1 = nn.Linear(self.input_size, 256)
 
         # Hidden
-        self.fc2 = nn.Linear(256, 32)
+        self.fc2 = nn.Linear(256, 128)
+        self.fc3 = nn.Linear(128, 32)
         
         # Output
         self.output = nn.Linear(32, 1)
@@ -184,12 +186,14 @@ class LDANet(nn.Module, LDAClass):
             x = torch.cat((embedded_picks, other_features))
 
         # Forward pass 
-        x = self.leaky_relu(self.fc1(x))
+        x = self.activation_fn(self.fc1(x))
         x = self.dropout(x)
         
-        x = self.leaky_relu(self.fc2(x))
+        x = self.activation_fn(self.fc2(x))
         x = self.dropout(x)
-        
+
+        x = self.activation_fn(self.fc3(x))
+
         x = torch.sigmoid(self.output(x))
         return x
 
