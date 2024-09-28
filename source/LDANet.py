@@ -147,25 +147,34 @@ class LDANet(nn.Module, LDAClass):
         self.logger.info(f"Computed input size for first layer: {self.input_size}")
 
         # Embedding
-        self.champ_embedding = nn.Embedding(self.champion_count + 1, self.embedding_dimension)
+        self.champ_embedding = nn.Embedding(self.champion_count + 1, self.embedding_dimension).to(CONST.DEVICE_CUDA)
+        self.top_embedding = nn.Embedding(self.champion_count + 1, self.embedding_dimension).to(CONST.DEVICE_CUDA)
+        self.jgl_embedding = nn.Embedding(self.champion_count + 1, self.embedding_dimension).to(CONST.DEVICE_CUDA)
+        self.mid_embedding = nn.Embedding(self.champion_count + 1, self.embedding_dimension).to(CONST.DEVICE_CUDA)
+        self.adc_embedding = nn.Embedding(self.champion_count + 1, self.embedding_dimension).to(CONST.DEVICE_CUDA)
+        self.sup_embedding = nn.Embedding(self.champion_count + 1, self.embedding_dimension).to(CONST.DEVICE_CUDA)
+
+        # Attention layers
+        self.pick_attention = nn.MultiheadAttention(embed_dim=self.embedding_dimension, num_heads=4).to(CONST.DEVICE_CUDA)
+        self.synergy_attention = nn.MultiheadAttention(embed_dim=self.embedding_dimension, num_heads=4).to(CONST.DEVICE_CUDA)
 
         # Dropout layers for regularization to prevent overfitting
-        self.dropout = nn.Dropout(p=0.5)
+        self.dropout = nn.Dropout(p=0.5).to(CONST.DEVICE_CUDA)
 
         # Define activation function 
-        self.leaky_relu = nn.LeakyReLU(negative_slope=0.1)
+        self.leaky_relu = nn.LeakyReLU(negative_slope=0.1).to(CONST.DEVICE_CUDA)
         self.activation_fn = self.leaky_relu
 
         # Input
-        self.fc1 = nn.Linear(self.input_size, 312)
+        self.fc1 = nn.Linear(self.input_size, 312).to(CONST.DEVICE_CUDA)
 
         # Hidden
-        self.fc2 = nn.Linear(312, 256)
-        self.fc3 = nn.Linear(256, 128)
-        self.fc4 = nn.Linear(128, 32)
+        self.fc2 = nn.Linear(312, 256).to(CONST.DEVICE_CUDA)
+        self.fc3 = nn.Linear(256, 128).to(CONST.DEVICE_CUDA)
+        self.fc4 = nn.Linear(128, 32).to(CONST.DEVICE_CUDA)
         
         # Output
-        self.output = nn.Linear(32, 1)
+        self.output = nn.Linear(32, 1).to(CONST.DEVICE_CUDA)
 
         # Initialize weights
         for m in self.modules():
@@ -175,10 +184,22 @@ class LDANet(nn.Module, LDAClass):
 
     def forward(self, x):
         """Forward pass neural net"""
-        # Data preparation
-        picks = x[:10].long()
-        embedded_picks = self.champ_embedding(picks)
-        embedded_picks = torch.tensor(embedded_picks, dtype=self.normalizer.tensor_datatype).view(1, -1).flatten()
+        # Embed picks
+        picks_top = torch.tensor([x[0].item(), x[5].item()], dtype=self.normalizer.tensor_datatype).long().to(CONST.DEVICE_CUDA)
+        picks_jgl = torch.tensor([x[1].item(), x[6].item()], dtype=self.normalizer.tensor_datatype).long().to(CONST.DEVICE_CUDA)
+        picks_mid = torch.tensor([x[2].item(), x[7].item()], dtype=self.normalizer.tensor_datatype).long().to(CONST.DEVICE_CUDA)
+        picks_adc = torch.tensor([x[3].item(), x[8].item()], dtype=self.normalizer.tensor_datatype).long().to(CONST.DEVICE_CUDA)
+        picks_sup = torch.tensor([x[4].item(), x[9].item()], dtype=self.normalizer.tensor_datatype).long().to(CONST.DEVICE_CUDA)
+        embedded_top = self.top_embedding(picks_top)
+        embedded_jgl = self.jgl_embedding(picks_jgl)
+        embedded_mid = self.mid_embedding(picks_mid)
+        embedded_adc = self.adc_embedding(picks_adc)
+        embedded_sup = self.sup_embedding(picks_sup)
+
+        # Apply attention to embedded picks
+        embedded_picks = torch.cat((embedded_top, embedded_jgl, embedded_mid, embedded_adc, embedded_sup), dim=0)
+        attn_output, _ = self.pick_attention(embedded_picks, embedded_picks, embedded_picks)
+        embedded_picks = torch.tensor(attn_output, dtype=self.normalizer.tensor_datatype).flatten().to(CONST.DEVICE_CUDA)
 
         if CONST.BAN_DATA in self.features_to_process:
             bans = x[10:20].long()
@@ -190,16 +211,14 @@ class LDANet(nn.Module, LDAClass):
             other_features = x[10:]
             x = torch.cat((embedded_picks, other_features))
 
-        # Forward pass 
+        # Forward pass
+        x = x.to(CONST.DEVICE_CUDA)
         x = self.activation_fn(self.fc1(x))
         x = self.dropout(x)
-        
         x = self.activation_fn(self.fc2(x))
         x = self.dropout(x)
-
         x = self.activation_fn(self.fc3(x))
         x = self.dropout(x)
-
         x = self.activation_fn(self.fc4(x))
 
         x = torch.sigmoid(self.output(x))

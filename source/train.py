@@ -18,7 +18,7 @@ class TrainParams():
     RANDOM_STATE = 42
     BATCH_SIZE = 12
     LEARNING_RATE = 0.001
-    WEIGHT_DECAY = 0.00001 # fuck this param, never again
+    WEIGHT_DECAY = 0.0001 # fuck this param, never again
     SAVE_PATH = CONST.LDA_WEIGHTS_PATH
 
 def train_model(model, dataset):
