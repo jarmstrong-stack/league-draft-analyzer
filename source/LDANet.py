@@ -155,8 +155,8 @@ class LDANet(nn.Module, LDAClass):
         self.sup_embedding = nn.Embedding(self.champion_count + 1, self.embedding_dimension).to(CONST.DEVICE_CUDA)
 
         # Attention layers
-        self.pick_attention = nn.MultiheadAttention(embed_dim=self.embedding_dimension, num_heads=4).to(CONST.DEVICE_CUDA)
-        self.synergy_attention = nn.MultiheadAttention(embed_dim=self.embedding_dimension, num_heads=4).to(CONST.DEVICE_CUDA)
+        self.pick_attention = nn.MultiheadAttention(embed_dim=self.embedding_dimension, num_heads=6).to(CONST.DEVICE_CUDA)
+        self.synergy_attention = nn.MultiheadAttention(embed_dim=1, num_heads=1).to(CONST.DEVICE_CUDA)
 
         # Dropout layers for regularization to prevent overfitting
         self.dropout = nn.Dropout(p=0.5).to(CONST.DEVICE_CUDA)
@@ -166,12 +166,13 @@ class LDANet(nn.Module, LDAClass):
         self.activation_fn = self.leaky_relu
 
         # Input
-        self.fc1 = nn.Linear(self.input_size, 312).to(CONST.DEVICE_CUDA)
+        self.fc1 = nn.Linear(self.input_size, 1024).to(CONST.DEVICE_CUDA)
 
         # Hidden
-        self.fc2 = nn.Linear(312, 256).to(CONST.DEVICE_CUDA)
-        self.fc3 = nn.Linear(256, 128).to(CONST.DEVICE_CUDA)
-        self.fc4 = nn.Linear(128, 32).to(CONST.DEVICE_CUDA)
+        self.fc2 = nn.Linear(1024, 512).to(CONST.DEVICE_CUDA)
+        self.fc3 = nn.Linear(512, 256).to(CONST.DEVICE_CUDA)
+        self.fc4 = nn.Linear(256, 128).to(CONST.DEVICE_CUDA)
+        self.fc5 = nn.Linear(128, 32).to(CONST.DEVICE_CUDA)
         
         # Output
         self.output = nn.Linear(32, 1).to(CONST.DEVICE_CUDA)
@@ -184,6 +185,9 @@ class LDANet(nn.Module, LDAClass):
 
     def forward(self, x):
         """Forward pass neural net"""
+        tensors_to_cat = []
+        current_offset = 0
+
         # Embed picks
         picks_top = torch.tensor([x[0].item(), x[5].item()], dtype=self.normalizer.tensor_datatype).long().to(CONST.DEVICE_CUDA)
         picks_jgl = torch.tensor([x[1].item(), x[6].item()], dtype=self.normalizer.tensor_datatype).long().to(CONST.DEVICE_CUDA)
@@ -200,19 +204,33 @@ class LDANet(nn.Module, LDAClass):
         embedded_picks = torch.cat((embedded_top, embedded_jgl, embedded_mid, embedded_adc, embedded_sup), dim=0)
         attn_output, _ = self.pick_attention(embedded_picks, embedded_picks, embedded_picks)
         embedded_picks = torch.tensor(attn_output, dtype=self.normalizer.tensor_datatype).flatten().to(CONST.DEVICE_CUDA)
+        tensors_to_cat.append(embedded_picks)
+        current_offset = 10
 
+        # Embed bans
         if CONST.BAN_DATA in self.features_to_process:
-            bans = x[10:20].long()
+            bans = x[current_offset:20].long()
             embedded_bans = self.champ_embedding(bans)
             embedded_bans = torch.tensor(embedded_bans, dtype=self.normalizer.tensor_datatype).view(1, -1).flatten()
-            other_features = x[20:]
-            x = torch.cat((embedded_picks, embedded_bans, other_features))
-        else:
-            other_features = x[10:]
-            x = torch.cat((embedded_picks, other_features))
+            tensors_to_cat.append(embedded_bans)
+            current_offset = 20
+
+        # Apply attention to synergy (lol this hurts learning)
+        # if CONST.SYNERGY_DATA in self.features_to_process:
+        #     synergies = x[current_offset:current_offset + self.feature_input_size[CONST.SYNERGY_DATA]]
+        #     synergies = synergies.view(self.feature_input_size[CONST.SYNERGY_DATA], 1, 1)
+        #     attn_output, _ = self.synergy_attention(synergies, synergies, synergies)
+        #     tensors_to_cat.append(attn_output.view(-1))
+        #     current_offset = current_offset + self.feature_input_size[CONST.SYNERGY_DATA]
+
+        # Apply any feature we didnt catch
+        other_features = x[current_offset:]
+        tensors_to_cat.append(other_features)
+
+        # Build input tensor
+        x = torch.cat(tuple(tensors_to_cat)).to(CONST.DEVICE_CUDA)
 
         # Forward pass
-        x = x.to(CONST.DEVICE_CUDA)
         x = self.activation_fn(self.fc1(x))
         x = self.dropout(x)
         x = self.activation_fn(self.fc2(x))
@@ -220,6 +238,8 @@ class LDANet(nn.Module, LDAClass):
         x = self.activation_fn(self.fc3(x))
         x = self.dropout(x)
         x = self.activation_fn(self.fc4(x))
+        x = self.dropout(x)
+        x = self.activation_fn(self.fc5(x))
 
         x = torch.sigmoid(self.output(x))
         return x
