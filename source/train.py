@@ -16,7 +16,7 @@ class TrainParams():
     EPOCHS = 13
     TEST_SIZE = 0.2
     RANDOM_STATE = 42
-    BATCH_SIZE = 6 # 12
+    BATCH_SIZE = 24 # 12
     LEARNING_RATE = 0.001
     WEIGHT_DECAY = 0.0001 # fuck this param, never again
     SAVE_PATH = CONST.LDA_WEIGHTS_PATH

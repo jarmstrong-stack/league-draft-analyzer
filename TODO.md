@@ -1,3 +1,8 @@
+# README.md
+model noticed that blue side has better odds
+model understood each champ becase of embedding layers
+model understood what champions to prioritize in draft because of attention layers
+
 # Expand network while checking what works and what doesnt
 obviously weight decay doesnt do shit(xdd)
 

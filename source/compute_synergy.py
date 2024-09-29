@@ -46,7 +46,7 @@ main_role_pairs = [
     (CONST.SUP_ROLE, CONST.ADC_ROLE),
 ]
 
-role_pairs = main_role_pairs 
+role_pairs = all_role_pairs 
 
 def parse_args() -> dict[str,Any]:
     """Parse required args for script"""

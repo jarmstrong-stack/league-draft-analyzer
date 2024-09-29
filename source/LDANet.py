@@ -12,6 +12,7 @@ import train
 import compute_synergy as CS
 import parse_game_data as PG
 import constants as CONST
+import compute_synergy as CS
 from Normalizer import Normalizer
 from LDAClass import LDAClass
 from LDADataset import LDADataset
@@ -121,7 +122,7 @@ class LDANet(nn.Module, LDAClass):
         CONST.PATCH_DATA: 1,
         CONST.TEAMS_DATA: 2,
         CONST.GAMEDATE_DATA: 1,
-        CONST.SYNERGY_DATA: 4 * 2, # `{number_of_synergies} * 2` for multi, `1` for single
+        CONST.SYNERGY_DATA: len(CS.role_pairs) * 2, # `{number_of_synergies} * 2` for multi, `1` for single
         CONST.GAMERESULT_DATA: 1,
     }
 
@@ -156,7 +157,6 @@ class LDANet(nn.Module, LDAClass):
 
         # Attention layers
         self.pick_attention = nn.MultiheadAttention(embed_dim=self.embedding_dimension, num_heads=6).to(CONST.DEVICE_CUDA)
-        self.synergy_attention = nn.MultiheadAttention(embed_dim=1, num_heads=1).to(CONST.DEVICE_CUDA)
 
         # Dropout layers for regularization to prevent overfitting
         self.dropout = nn.Dropout(p=0.5).to(CONST.DEVICE_CUDA)
@@ -214,14 +214,6 @@ class LDANet(nn.Module, LDAClass):
             embedded_bans = torch.tensor(embedded_bans, dtype=self.normalizer.tensor_datatype).view(1, -1).flatten()
             tensors_to_cat.append(embedded_bans)
             current_offset = 20
-
-        # Apply attention to synergy (lol this hurts learning)
-        # if CONST.SYNERGY_DATA in self.features_to_process:
-        #     synergies = x[current_offset:current_offset + self.feature_input_size[CONST.SYNERGY_DATA]]
-        #     synergies = synergies.view(self.feature_input_size[CONST.SYNERGY_DATA], 1, 1)
-        #     attn_output, _ = self.synergy_attention(synergies, synergies, synergies)
-        #     tensors_to_cat.append(attn_output.view(-1))
-        #     current_offset = current_offset + self.feature_input_size[CONST.SYNERGY_DATA]
 
         # Apply any feature we didnt catch
         other_features = x[current_offset:]
