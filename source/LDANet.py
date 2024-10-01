@@ -154,6 +154,7 @@ class LDANet(nn.Module, LDAClass):
 
         # Embedding
         self.champ_embedding = nn.Embedding(self.champion_count + 1, self.embedding_dimension).to(CONST.DEVICE_CUDA)
+        self.synergy_embedding = nn.Linear(self.feature_input_size[CONST.SYNERGY_DATA], self.feature_input_size[CONST.SYNERGY_DATA]).to(CONST.DEVICE_CUDA)
         self.top_embedding = nn.Embedding(self.champion_count + 1, self.embedding_dimension).to(CONST.DEVICE_CUDA)
         self.jgl_embedding = nn.Embedding(self.champion_count + 1, self.embedding_dimension).to(CONST.DEVICE_CUDA)
         self.mid_embedding = nn.Embedding(self.champion_count + 1, self.embedding_dimension).to(CONST.DEVICE_CUDA)
@@ -162,6 +163,7 @@ class LDANet(nn.Module, LDAClass):
 
         # Attention layers
         self.pick_attention = nn.MultiheadAttention(embed_dim=self.embedding_dimension, num_heads=6).to(CONST.DEVICE_CUDA)
+        self.synergy_attention = nn.MultiheadAttention(embed_dim=self.feature_input_size[CONST.SYNERGY_DATA], num_heads=4).to(CONST.DEVICE_CUDA)
 
         # Dropout layers for regularization to prevent overfitting
         self.dropout = nn.Dropout(p=0.5).to(CONST.DEVICE_CUDA)
@@ -216,9 +218,18 @@ class LDANet(nn.Module, LDAClass):
         if CONST.BAN_DATA in self.features_to_process:
             bans = x[current_offset:20].long()
             embedded_bans = self.champ_embedding(bans)
-            embedded_bans = torch.tensor(embedded_bans, dtype=self.normalizer.tensor_datatype).view(1, -1).flatten()
+            embedded_bans = torch.tensor(embedded_bans, dtype=self.normalizer.tensor_datatype).view(1, -1).flatten().to(CONST.DEVICE_CUDA)
             tensors_to_cat.append(embedded_bans)
             current_offset = 20
+
+        # Embed synergies
+        if CONST.SYNERGY_DATA in self.features_to_process:
+            synergies = x[current_offset:current_offset + self.feature_input_size[CONST.SYNERGY_DATA]]
+            current_offset = current_offset + self.feature_input_size[CONST.SYNERGY_DATA]
+            synergies_tensor = torch.tensor(synergies, dtype=self.normalizer.tensor_datatype).view(1, -1).to(CONST.DEVICE_CUDA)
+            embedded_synergies = self.synergy_embedding(synergies_tensor)
+            attn_output, _ = self.synergy_attention(embedded_synergies, embedded_synergies, embedded_synergies)
+            tensors_to_cat.append(attn_output.flatten().to(CONST.DEVICE_CUDA))
 
         # Apply any feature we didnt catch
         other_features = x[current_offset:]
