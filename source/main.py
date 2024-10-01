@@ -20,6 +20,6 @@ def main(args:dict) -> int:
             net.load_lda(CONST.LDA_WEIGHTS_PATH)
             x = net(net.handle_prediction_data(TEST.PCS_GAME))
             print(x)
-        case None:
-            logger.critical(f"No \"{CONST.DRIVER_ACTION}\" was provided in args.")
+        case _:
+            logger.critical(f"No/Invalid \"{CONST.DRIVER_ACTION}\" was provided in args.")
     return 0
