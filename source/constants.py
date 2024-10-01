@@ -32,6 +32,7 @@ GAMEDATE_DATA = "game-date"
 GAMETIME_DATA = "game-time"
 GAMERESULT_DATA = "result"
 SYNERGY_DATA = "synergy"
+COUNTER_DATA = "counter"
 
 ### Results
 BLUE_WIN = 0

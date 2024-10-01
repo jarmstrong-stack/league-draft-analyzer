@@ -86,15 +86,16 @@ def main():
         raise ValueError("Input file given has no info/Could not be read.")
     print(f"> Read input file... len={len(data_to_compute)}")
 
-    # 4. Compute synergies
-    pair_synergy = calculate_role_specific_synergy(data_to_compute)
+    # 4. Compute synergies and counters
+    pair_synergy, counter_values = calculate_role_specific_synergy_and_counters(data_to_compute)
     print(f"> Computed synergies: {len(pair_synergy)}")
+    print(f"> Computed counters: {len(counter_values)}")
 
     # 5. Add synergies to data
     for game in data_to_compute:
-        add_synergy_to_data(game, pair_synergy)
+        add_synergy_and_counters_to_data(game, pair_synergy, counter_values)
     print(f"> Synergies added to data")
-    
+        
     # 6. Write data
     with open(parsed_args[OUTPUT_FILE_ARG], 'w') as f:
         json.dump(data_to_compute, f, indent=2)
@@ -102,19 +103,24 @@ def main():
 
     return 0
 
-def calculate_role_specific_synergy(data):
-    """Calculate champion pair synergy based on win rates."""
-    # Dictionary to track win rates for champion pairs
+def calculate_role_specific_synergy_and_counters(data, laplace_smoothing_factor=1):
+    """Calculate champion pair synergy based on win rates and individual counters based on win rates,
+       applying Laplace smoothing to avoid extreme win rates with few games."""
+    # Dictionary to track win rates for champion pairs (synergy)
     pair_win_count = defaultdict(int)
     pair_game_count = defaultdict(int)
 
-    # First pass: collect win/loss statistics for each role-specific champion pair
+    # Dictionary to track individual role counters (e.g., Top vs Top)
+    counter_win_count = defaultdict(int)
+    counter_game_count = defaultdict(int)
+
+    # First pass: collect win/loss statistics for both role-specific champion pairs (synergy) and individual role counters
     for game in data:
         blue_team = game[CONST.PICK_DATA][CONST.BLUE_SIDE]
         red_team = game[CONST.PICK_DATA][CONST.RED_SIDE]
         result = game[CONST.GAMERESULT_DATA]
 
-        # Update win and game counts for blue team role-specific champion pairs
+        # Update win and game counts for blue team role-specific champion pairs (synergy)
         for role1, role2 in role_pairs:
             pair_blue = (blue_team[role1], blue_team[role2])
             pair_red = (red_team[role1], red_team[role2])
@@ -130,42 +136,75 @@ def calculate_role_specific_synergy(data):
             elif result == CONST.RED_WIN:
                 pair_win_count[sorted_red_pair] += 1
 
-    # Calculate win rate (synergy) for each pair of champions
+        # Update win and game counts for individual role counters (e.g., Top vs Top)
+        for role in [CONST.TOP_ROLE, CONST.JGL_ROLE, CONST.MID_ROLE, CONST.ADC_ROLE, CONST.SUP_ROLE]:
+            blue_champ = blue_team[role]
+            red_champ = red_team[role]
+
+            counter_game_count[(blue_champ, red_champ)] += 1
+            counter_game_count[(red_champ, blue_champ)] += 1
+
+            if result == CONST.BLUE_WIN:
+                counter_win_count[(blue_champ, red_champ)] += 1
+            elif result == CONST.RED_WIN:
+                counter_win_count[(red_champ, blue_champ)] += 1
+
+    # Calculate win rate (synergy) for each pair of champions with Laplace smoothing
     pair_synergy = {}
     for pair, games in pair_game_count.items():
         wins = pair_win_count[pair]
-        pair_synergy[pair] = wins / games if games > 0 else 0.0
+        # Laplace smoothing: Add `laplace_smoothing_factor` virtual wins and losses
+        pair_synergy[pair] = (wins + laplace_smoothing_factor) / (games + 2 * laplace_smoothing_factor)
 
-    return pair_synergy
+    # Calculate counter rate for individual roles with Laplace smoothing
+    counter_rate = {}
+    for matchup, games in counter_game_count.items():
+        wins = counter_win_count[matchup]
+        # Laplace smoothing: Add `laplace_smoothing_factor` virtual wins and losses
+        counter_rate[matchup] = (wins + laplace_smoothing_factor) / (games + 2 * laplace_smoothing_factor)
 
-def add_synergy_to_data(game, pair_synergy):
-    """Calculate synergy for a specific game and add it to data."""
+    return pair_synergy, counter_rate
+
+def add_synergy_and_counters_to_data(game, pair_synergy, counter_rate):
+    """Calculate synergy and counters for a specific game and add them to data."""
 
     blue_team = game[CONST.PICK_DATA][CONST.BLUE_SIDE]
     red_team = game[CONST.PICK_DATA][CONST.RED_SIDE]
 
-    # Initialize dictionaries to store role-specific synergies
+    # Initialize dictionaries to store role-specific synergies and counters
     blue_synergy = {}
     red_synergy = {}
+    blue_counters = {}
+    red_counters = {}
 
-    # Calculate the role-specific synergy score for the blue team
+    # Calculate the role-specific synergy score for the blue and red team
     for role1, role2 in role_pairs:
         role_key = f"{role1}_{role2}"  # Create a string key for the role pair
         pair_blue = (blue_team[role1], blue_team[role2])
-        sorted_blue_pair = tuple(sorted(pair_blue))
-        blue_synergy[role_key] = pair_synergy.get(sorted_blue_pair, 0.0) * 3
-
-    # Calculate the role-specific synergy score for the red team
-    for role1, role2 in role_pairs:
-        role_key = f"{role1}_{role2}"  # Create a string key for the role pair
         pair_red = (red_team[role1], red_team[role2])
+        sorted_blue_pair = tuple(sorted(pair_blue))
         sorted_red_pair = tuple(sorted(pair_red))
-        red_synergy[role_key] = pair_synergy.get(sorted_red_pair, 0.0) * 3
 
-    # Add the computed synergies for both teams
+        blue_synergy[role_key] = pair_synergy.get(sorted_blue_pair, 0.0)
+        red_synergy[role_key] = pair_synergy.get(sorted_red_pair, 0.0)
+
+    # Calculate the individual role counter values for the blue and red team
+    for role in [CONST.TOP_ROLE, CONST.JGL_ROLE, CONST.MID_ROLE, CONST.ADC_ROLE, CONST.SUP_ROLE]:
+        blue_champ = blue_team[role]
+        red_champ = red_team[role]
+
+        blue_counters[role] = counter_rate.get((blue_champ, red_champ), 0.0)
+        red_counters[role] = counter_rate.get((red_champ, blue_champ), 0.0)
+
+    # Add the computed synergies and counters for both teams
     game[CONST.SYNERGY_DATA] = {
         CONST.BLUE_SIDE: {role: round(synergy, 3) for role, synergy in blue_synergy.items()},
         CONST.RED_SIDE: {role: round(synergy, 3) for role, synergy in red_synergy.items()}
+    }
+
+    game[CONST.COUNTER_DATA] = {
+        CONST.BLUE_SIDE: {role: round(counter, 3) for role, counter in blue_counters.items()},
+        CONST.RED_SIDE: {role: round(counter, 3) for role, counter in red_counters.items()}
     }
 
 if __name__ == "__main__":

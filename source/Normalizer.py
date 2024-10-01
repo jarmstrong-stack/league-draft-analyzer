@@ -60,39 +60,39 @@ class Normalizer(LDAClass):
         blue_picks = [data[CONST.PICK_DATA][CONST.BLUE_SIDE][str(i)] for i in range(1, 6)]
         red_picks = [data[CONST.PICK_DATA][CONST.RED_SIDE][str(i)] for i in range(1, 6)]
         return {
-            CONST.BLUE_SIDE: torch.tensor(blue_picks, dtype=self.tensor_datatype),
-            CONST.RED_SIDE: torch.tensor(red_picks, dtype=self.tensor_datatype)
+            CONST.BLUE_SIDE: torch.tensor(blue_picks, dtype=self.tensor_datatype).to(CONST.DEVICE_CUDA),
+            CONST.RED_SIDE: torch.tensor(red_picks, dtype=self.tensor_datatype).to(CONST.DEVICE_CUDA)
         }
 
     def ban(self, data:dict):
         """bans preprocessor"""
         return {
-            CONST.BLUE_SIDE: torch.tensor(data[CONST.BAN_DATA][CONST.BLUE_SIDE], dtype=self.tensor_datatype),
-            CONST.RED_SIDE: torch.tensor(data[CONST.BAN_DATA][CONST.RED_SIDE], dtype=self.tensor_datatype)
+            CONST.BLUE_SIDE: torch.tensor(data[CONST.BAN_DATA][CONST.BLUE_SIDE], dtype=self.tensor_datatype).to(CONST.DEVICE_CUDA),
+            CONST.RED_SIDE: torch.tensor(data[CONST.BAN_DATA][CONST.RED_SIDE], dtype=self.tensor_datatype).to(CONST.DEVICE_CUDA)
         }
 
     def patch(self, data:dict):
         """patch preprocessor (0-1 values)"""
         # if patch not in data, just send 1
         if not CONST.PATCH_DATA in data:
-            return torch.tensor(1, dtype=self.tensor_datatype)
+            return torch.tensor(1, dtype=self.tensor_datatype).to(CONST.DEVICE_CUDA)
 
         patch_normalized = (data[CONST.PATCH_DATA] - 315) / 1103
-        return torch.tensor(patch_normalized, dtype=self.tensor_datatype).unsqueeze(0)
+        return torch.tensor(patch_normalized, dtype=self.tensor_datatype).unsqueeze(0).to(CONST.DEVICE_CUDA)
 
     def single_synergy(self, data:dict):
         """synergy preprocessor (red synergy - blue synergy)(0-1 values)"""
         synergy_normalized = (data[CONST.SYNERGY_DATA][CONST.RED_SIDE] - data[CONST.SYNERGY_DATA][CONST.BLUE_SIDE])
         synergy_normalized = (synergy_normalized + 9) / 18
-        return torch.tensor(round(synergy_normalized, 3), dtype=self.tensor_datatype).unsqueeze(0)
+        return torch.tensor(round(synergy_normalized, 3), dtype=self.tensor_datatype).unsqueeze(0).to(CONST.DEVICE_CUDA)
 
     def multi_synergy(self, data:dict):
         """synergy preprocessor (multi role)"""
         blue_synergies = list(data[CONST.SYNERGY_DATA][CONST.BLUE_SIDE].values())
         red_synergies = list(data[CONST.SYNERGY_DATA][CONST.RED_SIDE].values())
         return {
-            CONST.BLUE_SIDE: torch.tensor(blue_synergies, dtype=self.tensor_datatype),
-            CONST.RED_SIDE: torch.tensor(red_synergies, dtype=self.tensor_datatype)
+            CONST.BLUE_SIDE: torch.tensor(blue_synergies, dtype=self.tensor_datatype).to(CONST.DEVICE_CUDA),
+            CONST.RED_SIDE: torch.tensor(red_synergies, dtype=self.tensor_datatype).to(CONST.DEVICE_CUDA)
         }
 
     def synergy(self, data:dict):
@@ -103,3 +103,9 @@ class Normalizer(LDAClass):
             return self.single_synergy(data)
         else:
             raise TypeError("Could not find synergy type")
+    
+    def counter(self, data:dict):
+        """Counter values for individual lanes"""
+        blue_counters = list(data[CONST.COUNTER_DATA][CONST.BLUE_SIDE].values())
+        red_counters = list(data[CONST.COUNTER_DATA][CONST.RED_SIDE].values())
+        return torch.tensor(blue_counters + red_counters, dtype=self.tensor_datatype).to(CONST.DEVICE_CUDA)

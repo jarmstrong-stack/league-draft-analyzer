@@ -30,7 +30,10 @@ class LDANet(nn.Module, LDAClass):
     
     synergy_values : dict
         A dictionary storing pre-computed synergy values for each champion pair in the dataset.
-    
+
+    counter_values: dict
+        A dictionary storing pre-computed counter values for each champion matchup in the dataset.
+
     game_data : list[dict]
         A list of dictionaries where each entry represents game data, including picks, bans, 
         synergies, patches, and results.
@@ -112,6 +115,7 @@ class LDANet(nn.Module, LDAClass):
         CONST.PICK_DATA,
         CONST.BAN_DATA,
         CONST.SYNERGY_DATA,
+        CONST.COUNTER_DATA,
         CONST.PATCH_DATA,
     ] 
     feature_input_size: dict[str, int] = { # How much does each feature take to input
@@ -123,6 +127,7 @@ class LDANet(nn.Module, LDAClass):
         CONST.TEAMS_DATA: 2,
         CONST.GAMEDATE_DATA: 1,
         CONST.SYNERGY_DATA: len(CS.role_pairs) * 2, # `{number_of_synergies} * 2` for multi, `1` for single
+        CONST.COUNTER_DATA: 10,
         CONST.GAMERESULT_DATA: 1,
     }
 
@@ -289,9 +294,9 @@ class LDANet(nn.Module, LDAClass):
         except KeyError:
             pass
         
-        # Check for missing synergy data
+        # Check for missing synergy/counter data
         if CONST.SYNERGY_DATA not in data:
-            CS.add_synergy_to_data(data, self.synergy_values)
+            CS.add_synergy_and_counters_to_data(data, self.synergy_values, self.counter_values)
         
         # Check for missed bans, some games can have 
         data[CONST.BAN_DATA][CONST.BLUE_SIDE] = self.pad_or_trim_list(data[CONST.BAN_DATA][CONST.BLUE_SIDE], 5, 0)
@@ -315,6 +320,8 @@ class LDANet(nn.Module, LDAClass):
                 tensors_to_cat.append(data[CONST.SYNERGY_DATA][CONST.RED_SIDE])
             else:
                 tensors_to_cat.append(data[CONST.SYNERGY_DATA])
+        if CONST.COUNTER_DATA in self.features_to_process:
+            tensors_to_cat.append(data[CONST.COUNTER_DATA])
         if CONST.PATCH_DATA in self.features_to_process:
             tensors_to_cat.append(data[CONST.PATCH_DATA])
 
@@ -345,8 +352,9 @@ class LDANet(nn.Module, LDAClass):
         if self.game_data == None or len(self.game_data) == 0:
             self.logger.critical("Could not compute synergy values: No game data found.")
             return
-        self.synergy_values = CS.calculate_role_specific_synergy(self.game_data)
+        self.synergy_values, self.counter_values = CS.calculate_role_specific_synergy_and_counters(self.game_data)
         self.logger.info(f"Loaded synergy values... len={len(self.synergy_values)}")
+        self.logger.info(f"Loaded counter values... len={len(self.counter_values)}")
 
     def compute_input_size(self):
         """Compute neural net initial input size given the features to input"""
