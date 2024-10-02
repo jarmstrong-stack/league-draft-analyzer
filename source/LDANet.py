@@ -154,7 +154,6 @@ class LDANet(nn.Module, LDAClass):
 
         # Embedding
         self.champ_embedding = nn.Embedding(self.champion_count + 1, self.embedding_dimension).to(CONST.DEVICE_CUDA)
-        self.synergy_embedding = nn.Linear(self.feature_input_size[CONST.SYNERGY_DATA], self.feature_input_size[CONST.SYNERGY_DATA]).to(CONST.DEVICE_CUDA)
         self.top_embedding = nn.Embedding(self.champion_count + 1, self.embedding_dimension).to(CONST.DEVICE_CUDA)
         self.jgl_embedding = nn.Embedding(self.champion_count + 1, self.embedding_dimension).to(CONST.DEVICE_CUDA)
         self.mid_embedding = nn.Embedding(self.champion_count + 1, self.embedding_dimension).to(CONST.DEVICE_CUDA)
@@ -227,8 +226,7 @@ class LDANet(nn.Module, LDAClass):
             synergies = x[current_offset:current_offset + self.feature_input_size[CONST.SYNERGY_DATA]]
             current_offset = current_offset + self.feature_input_size[CONST.SYNERGY_DATA]
             synergies_tensor = torch.tensor(synergies, dtype=self.normalizer.tensor_datatype).view(1, -1).to(CONST.DEVICE_CUDA)
-            embedded_synergies = self.synergy_embedding(synergies_tensor)
-            attn_output, _ = self.synergy_attention(embedded_synergies, embedded_synergies, embedded_synergies)
+            attn_output, _ = self.synergy_attention(synergies_tensor, synergies_tensor, synergies_tensor)
             tensors_to_cat.append(attn_output.flatten().to(CONST.DEVICE_CUDA))
 
         # Apply any feature we didnt catch
