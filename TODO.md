@@ -23,6 +23,21 @@ model understood each champ becase of embedding layers
 model understood what champions to prioritize in draft because of attention layers
 difference between **good draft** and **good pro play draft**
 
+# Some ai prompts:
+- Attention on synergies
+I implemented attention on synergies but the model didn't get higher accuracy then when i had no attention on them.
+Can you check if my implementation is correct, from what I understood I should input to the linear layer
+the ammount of synergies i have and the Linear layer will output the same ammount of synergies.
+And with the output of the layers i apply attention and get the respective attention values. Please let me know if this is the correct way to implement attention to synergies.
+([define(), forward()])
+PS: Try NOT passing them through the embedding(linear) layer and directly into attention
+
+- Multi-Headed Attention:
+You wrote this in an earlier response:
+- Multi-Headed Attention on Roles: Since you have role-based embeddings, you could apply separate attention heads for different role interactions (e.g., Top & Jungle synergy).
+Can you explain this better? how would you implement it and how does it work, and will it improve the accuracy of the network in any way?
+([define(), forward()])
+
 # Expand network while checking what works and what doesnt
 obviously weight decay doesnt do shit(xdd), it does qxdd
 
