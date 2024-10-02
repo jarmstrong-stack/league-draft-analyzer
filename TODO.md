@@ -38,6 +38,13 @@ You wrote this in an earlier response:
 Can you explain this better? how would you implement it and how does it work, and will it improve the accuracy of the network in any way?
 ([define(), forward()])
 
+- Weighted loss:
+You wrote this in an earlier response:
+- Weighted Loss: If certain drafts are harder to predict or more frequent, adjust the loss function to weight mispredictions differently, focusing more on difficult-to-predict cases.
+And it seems interesting for our model, because maybe when a draft is "better" than the other they can end up losing...
+How would weighted loss work and how would it be implemented? Would it hurt the learning of the model?
+([define(), forward()])
+
 # Expand network while checking what works and what doesnt
 obviously weight decay doesnt do shit(xdd), it does qxdd
 
