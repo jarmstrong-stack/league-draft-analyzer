@@ -5,6 +5,7 @@
 import time
 import torch
 import torch.optim as optim
+import torch.optim.lr_scheduler as lr_scheduler
 import torch.nn as nn
 from torch.utils.data import DataLoader
 from sklearn.model_selection import train_test_split
@@ -17,8 +18,10 @@ class TrainParams():
     TEST_SIZE = 0.2
     RANDOM_STATE = 42
     BATCH_SIZE = 12 # 12
-    LEARNING_RATE = 0.0001
+    LEARNING_RATE = 0.001
     WEIGHT_DECAY = 0.0001 # fuck this param, never again
+    LR_FACTOR = 0.1 # How much to impact the scheduler
+    LR_PATIENCE = 3 # How much epochs to trigger lr scheduler
     SAVE_PATH = CONST.LDA_WEIGHTS_PATH
 
 def train_model(model, dataset):
@@ -34,9 +37,11 @@ def train_model(model, dataset):
     train_loader = DataLoader(train_data, batch_size=TrainParams.BATCH_SIZE, shuffle=True)
     val_loader = DataLoader(val_data, batch_size=TrainParams.BATCH_SIZE, shuffle=False)
 
-    # Define the optimizer and loss function
+    # Define the optimizer, loss function and lr scheduler
     optimizer = optim.Adam(model.parameters(), lr=TrainParams.LEARNING_RATE, weight_decay=TrainParams.WEIGHT_DECAY)
     criterion = nn.BCELoss()
+    #scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=TrainParams.LR_FACTOR, patience=TrainParams.LR_PATIENCE)
+    scheduler = lr_scheduler.StepLR(optimizer, step_size=TrainParams.LR_PATIENCE, gamma=TrainParams.LR_FACTOR)
 
     # Move model to the appropriate device
     device = torch.device(CONST.DEVICE_CUDA)
@@ -98,6 +103,9 @@ def train_model(model, dataset):
 
         # Print info regarding networks predictions
         print(f"count_0={count_0};count_1={count_1};count_lt_25={count_lt_25};count_gt_75={count_gt_75}")
+
+        # Step lr scheduler
+        scheduler.step()
 
     # Print time taken
     print("#"*120)

@@ -104,6 +104,7 @@ class LDANet(nn.Module, LDAClass):
     # Neural net data
     champ_mapping: dict
     synergy_values: dict
+    counter_values: dict
     game_data: list[dict]
 
     # Architecture parameters
@@ -134,10 +135,10 @@ class LDANet(nn.Module, LDAClass):
     def __init__(self, *args, **kwargs) -> None:
         super(LDANet, self).__init__(*args, **kwargs)
         
-        # Instantiate champ_mapping, game_data, synergy_values
+        # Instantiate champ_mapping, game_data, synergy_values and counter_values
         self.load_champ_mapping()
         self.load_game_data()
-        self.compute_synergy_values()
+        self.compute_synergy_and_counter_values()
         
         # Instantiate data normalizer
         self.normalizer = Normalizer(self.features_to_process)
@@ -179,7 +180,7 @@ class LDANet(nn.Module, LDAClass):
         self.fc3 = nn.Linear(512, 256).to(CONST.DEVICE_CUDA)
         self.fc4 = nn.Linear(256, 128).to(CONST.DEVICE_CUDA)
         self.fc5 = nn.Linear(128, 32).to(CONST.DEVICE_CUDA)
-        
+
         # Output
         self.output = nn.Linear(32, 1).to(CONST.DEVICE_CUDA)
 
@@ -235,16 +236,20 @@ class LDANet(nn.Module, LDAClass):
 
         # Build input tensor
         x = torch.cat(tuple(tensors_to_cat)).to(CONST.DEVICE_CUDA)
+        residual = x
 
         # Forward pass
         x = self.activation_fn(self.fc1(x))
         x = self.dropout(x)
         x = self.activation_fn(self.fc2(x))
         x = self.dropout(x)
+        x, residual = self.handle_residual_input(x, residual)
         x = self.activation_fn(self.fc3(x))
         x = self.dropout(x)
+        x, residual = self.handle_residual_input(x, residual)
         x = self.activation_fn(self.fc4(x))
         x = self.dropout(x)
+        x, residual = self.handle_residual_input(x, residual)
         x = self.activation_fn(self.fc5(x))
 
         x = torch.sigmoid(self.output(x))
@@ -257,6 +262,19 @@ class LDANet(nn.Module, LDAClass):
                 if param.grad is not None:
                     print(f"{name}: Gradient norm {param.grad.norm()}")
                 print(f"{name}: Mean weight {param.data.mean()}, Max weight {param.data.max()}, Min weight {param.data.min()}")
+
+    def handle_residual_input(self, x, residual):
+        """Helper function to handle residual inputting"""
+        if residual.size() != x.size():
+            residual = self.adjust_size(residual, x.size())
+        x = x + residual
+        residual = x
+        return x, residual
+
+    def adjust_size(self, residual, target_size):
+        """Adjusts the size of the residual to match target size using a linear layer."""
+        adjustment_layer = nn.Linear(residual.size(0), target_size[0]).to(CONST.DEVICE_CUDA)
+        return adjustment_layer(residual)
 
     def train_lda(self):
         """Train lda net"""
@@ -356,7 +374,7 @@ class LDANet(nn.Module, LDAClass):
             self.game_data = json.load(f)
         self.logger.info(f"Loaded game data... len={len(self.game_data)}")
 
-    def compute_synergy_values(self):
+    def compute_synergy_and_counter_values(self):
         """Pre-computes synergy values"""
         if self.game_data == None or len(self.game_data) == 0:
             self.logger.critical("Could not compute synergy values: No game data found.")
