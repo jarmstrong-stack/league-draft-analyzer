@@ -2,8 +2,6 @@
     LDA entry-point
 """
 
-from torchviz import make_dot
-
 import logging
 logger = logging.getLogger(__name__)
 
@@ -21,7 +19,6 @@ def main(args:dict) -> int:
         case CONST.DRIVER_PREDICT:
             net.load_lda(CONST.LDA_WEIGHTS_PATH)
             x = net(net.handle_prediction_data(TEST.UPDATED_TEST_GAME))
-            make_dot(x, params=dict(net.named_parameters())).render("model_graph", format="png")
             print(x)
         case _:
             logger.critical(f"No/Invalid \"{CONST.DRIVER_ACTION}\" was provided in args.")
