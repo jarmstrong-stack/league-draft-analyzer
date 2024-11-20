@@ -6,12 +6,14 @@ This document provides a comprehensive overview of the LDANet deep learning mode
 
 ## First Note
 
-The LDANet model tackles a uniquely challenging problem: predicting match outcomes SOLELY based on the **draft phase**, without considering team skill levels or player performance. This is especially difficult because in League of Legends, a "bad" team with a "good" draft can still lose to a "good" team with a "bad" draft due to individual skill differences. By ignoring team performance metrics, the model focuses purely on the strategic implications of champion selection.
+The LDANet model tackles a uniquely challenging problem: predicting match outcomes SOLELY based on the **draft phase**, without considering team skill levels or player performance. This is especially difficult because in League of Legends, a "bad" team with a "good" draft can still lose to a "good" team with a "bad" draft due to individual skill differences.
 
-With this strucutre, the model assumes both teams play "perfectly" or at the same level. And decides which **draft** is objectively better.
+With this strucutre, the model assumes both teams play "perfectly" or at the same level. And focuses purely on the strategic implications of champion selection to decide which **draft** is objectively better.
 
-### A Funny Insight
-During early iterations, the model consistently predicted that the **blue side** would win every game. This wasn't a bug—it was a fascinating outcome! The model independently learned that blue side has certain inherent advantages in League of Legends drafting, which is something experienced players and analysts already recognize.
+## A Funny Insight
+During early iterations, the model consistently predicted that the **blue side** would win every game. This wasn't a bug, it was a quite a funny outcome!
+
+The model independently learned that blue side has certain inherent advantages in League of Legends drafting, which is something pro-players and analysts already recognize.
 
 ---
 
@@ -123,7 +125,6 @@ After embeddings and attention layers, the data flows through a series of fully 
 ## Training Process
 
 1. **Dataset Preparation**:
-   - The dataset is balanced to ensure equal representation of blue and red wins.
    - Input features are normalized to the [0, 1] range.
 
 2. **Training Configuration**:
@@ -140,16 +141,10 @@ After embeddings and attention layers, the data flows through a series of fully 
 
 ## Key Challenges and Solutions
 
-1. **Class Imbalance**:
-   - Applied dataset balancing to ensure an even distribution of outcomes.
-
-2. **Feature Scaling**:
-   - All features (e.g., synergy, patch) are scaled to a consistent range to avoid bias.
-
-3. **Model Stagnation**:
+1. **Model Stagnation**:
    - Residual connections and attention mechanisms were added to improve gradient flow and focus on key interactions.
 
-4. **Accuracy Plateau**:
+2. **Accuracy Plateau**:
    - Addressed by fine-tuning learning rate schedules, balancing classes, and adding contextual features like counter values.
 
 ---
@@ -163,14 +158,4 @@ After embeddings and attention layers, the data flows through a series of fully 
 
 ---
 
-## Next Steps
-
-1. **Deploy the Model**:
-   - Integrate with a Django web application for real-time draft analysis.
-2. **Explore New Features**:
-   - Consider additional inputs like team strategies or recent performance.
-3. **Optimize Training**:
-   - Experiment with different optimizers (e.g., SGD with momentum) or advanced techniques like learning rate warm-up.
-
----
-
+*a project by lipeeeee*
