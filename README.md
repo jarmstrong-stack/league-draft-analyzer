@@ -4,6 +4,18 @@ This document provides a comprehensive overview of the LDANet deep learning mode
 
 ---
 
+## First Note
+
+The LDANet model tackles a uniquely challenging problem: predicting match outcomes SOLELY based on the **draft phase**, without considering team skill levels or player performance. This is especially difficult because in League of Legends, a "bad" team with a "good" draft can still lose to a "good" team with a "bad" draft due to individual skill differences. By ignoring team performance metrics, the model focuses purely on the strategic implications of champion selection.
+
+With this strucutre, the model assumes both teams play "perfectly" or at the same level. And decides which **draft** is objectively better.
+
+### A Funny Insight
+During early iterations, the model consistently predicted that the **blue side** would win every game. This wasn't a bug—it was a fascinating outcome! The model independently learned that blue side has certain inherent advantages in League of Legends drafting, which is something experienced players and analysts already recognize.
+
+---
+
+
 ## Overview
 
 The LDANet is designed to predict the winner of a League of Legends match based on:
