@@ -1,6 +1,6 @@
 # League Draft Analyzer Neural Network (LDANet)
 
-This document provides a comprehensive overview of the LDANet deep learning model used to analyze League of Legends drafts and predict match outcomes. The focus is on explaining the network architecture, input features, data processing, training methodology, and reasoning behind design decisions.
+This README provides a comprehensive overview of the LDANet deep learning model used to analyze League of Legends drafts and predict match outcomes. The focus is on explaining the network architecture, input features, data processing, training methodology, and reasoning behind design decisions.
 
 ---
 
