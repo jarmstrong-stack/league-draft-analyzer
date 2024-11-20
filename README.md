@@ -28,6 +28,12 @@ The LDANet is designed to predict the winner of a League of Legends match based 
 
 This neural network uses embeddings, attention mechanisms, and residual connections to process and learn from these inputs.
 
+Here is a visual representation of the deep learning model flow.
+
+<p align="center">
+  <img src="https://github.com/lipeeeee/league-draft-analyzer/blob/master/data/model_graph.png" />
+</p>
+
 ---
 
 ## Features Processed
