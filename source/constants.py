@@ -13,7 +13,7 @@ CHAMP_TO_INT_DATABASE = f'{DATA_FOLDER}/champ_mapping.yml'
 GAME_DATABASE = f'{DATA_FOLDER}/all_games_seperated_all_synergy.json'
 
 # pytorch values
-DEVICE_CUDA = "cuda"
+DEVICE_CUDA = "cpu"
 
 # driver args
 DRIVER_ACTION = "action"
